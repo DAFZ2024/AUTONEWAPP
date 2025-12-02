@@ -1,11 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// URL del backend - Se configura automáticamente según el entorno
-// En desarrollo: usa tu IP local (actualiza con ipconfig en Windows)
-// En producción: usa la URL de tu servidor en Render
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://autonewapp-backend.onrender.com/api';
+// URL del backend en producción (Render)
+// IMPORTANTE: Esta URL debe coincidir con tu backend desplegado
+const PRODUCTION_API_URL = 'https://autonewapp-backend.onrender.com/api';
+
+// Obtener URL de forma segura - prioriza la config, pero usa producción como fallback
+const getApiUrl = (): string => {
+  try {
+    const configUrl = Constants.expoConfig?.extra?.apiUrl;
+    if (configUrl && typeof configUrl === 'string' && configUrl.startsWith('http')) {
+      return configUrl;
+    }
+  } catch (e) {
+    console.log('Error obteniendo config, usando URL de producción');
+  }
+  return PRODUCTION_API_URL;
+};
+
+const API_URL = getApiUrl();
 const API_BASE_URL = API_URL.replace('/api', '');
+
+// Log para debug (puedes quitar en producción)
+console.log('[API] URL configurada:', API_URL);
 
 // Tipos de respuesta
 export interface ApiResponse<T = any> {

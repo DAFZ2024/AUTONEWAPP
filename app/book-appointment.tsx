@@ -5,8 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 
-// URL del backend - Se configura desde app.config.js
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://autonewapp-backend.onrender.com/api';
+// URL del backend en producción
+const PRODUCTION_API_URL = 'https://autonewapp-backend.onrender.com/api';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || PRODUCTION_API_URL;
 
 export default function BookAppointment() {
   const router = useRouter();

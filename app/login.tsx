@@ -10,8 +10,9 @@ import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get('window');
 
-// URL del backend - Se configura desde app.config.js
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://autonewapp-backend.onrender.com/api';
+// URL del backend en producción
+const PRODUCTION_API_URL = 'https://autonewapp-backend.onrender.com/api';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || PRODUCTION_API_URL;
 
 export default function LoginScreen() {
   const router = useRouter();
