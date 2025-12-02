@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -550,7 +551,7 @@ export default function BookAppointment() {
               serviciosDisponibles === 0 && styles.suscripcionBannerAgotada
             ]}>
               <View style={styles.suscripcionHeader}>
-                <Text style={styles.suscripcionIcon}>⭐</Text>
+                <Ionicons name="star" size={20} color="#FFD700" style={styles.suscripcionIcon} />
                 <Text style={styles.suscripcionTitulo}>
                   Plan {suscripcion?.plan?.nombre || 'Activo'}
                 </Text>
@@ -558,26 +559,26 @@ export default function BookAppointment() {
               <View style={styles.suscripcionInfo}>
                 {serviciosDisponibles === -1 ? (
                   <Text style={styles.suscripcionDisponibles}>
-                    🎉 ¡Servicios ilimitados este mes!
+                    <Ionicons name="gift-outline" size={16} color="#4CAF50" /> ¡Servicios ilimitados este mes!
                   </Text>
                 ) : serviciosDisponibles > 0 ? (
                   <Text style={styles.suscripcionDisponibles}>
-                    📋 Te quedan <Text style={styles.suscripcionNumero}>{serviciosDisponibles}</Text> servicio(s) disponibles este mes
+                    <Ionicons name="clipboard-outline" size={16} color="#2196F3" /> Te quedan <Text style={styles.suscripcionNumero}>{serviciosDisponibles}</Text> servicio(s) disponibles este mes
                   </Text>
                 ) : (
                   <Text style={styles.suscripcionAgotada}>
-                    ⚠️ Has agotado tus servicios del plan este mes
+                    <Ionicons name="warning-outline" size={16} color="#F44336" /> Has agotado tus servicios del plan este mes
                   </Text>
                 )}
               </View>
               <Text style={styles.suscripcionHint}>
-                Los servicios incluidos en tu plan están marcados con ⭐
+                Los servicios incluidos en tu plan están marcados con <Ionicons name="star" size={14} color="#FFD700" />
               </Text>
             </View>
           ) : (
             <View style={styles.sinSuscripcionBanner}>
               <Text style={styles.sinSuscripcionText}>
-                💡 ¿Sabías que puedes ahorrar con nuestros planes de suscripción?
+                <Ionicons name="bulb-outline" size={16} color="#FF9800" /> ¿Sabías que puedes ahorrar con nuestros planes de suscripción?
               </Text>
             </View>
           )}
@@ -585,7 +586,7 @@ export default function BookAppointment() {
           {/* Aviso de usar filtros */}
           {!filtroTipoVehiculo && !filtroTipoServicio && (
             <View style={styles.filterNotice}>
-              <Text style={styles.filterNoticeIcon}>🔍</Text>
+              <Ionicons name="search-outline" size={24} color="#1976D2" style={styles.filterNoticeIcon} />
               <Text style={styles.filterNoticeTitle}>¡Usa los filtros para encontrar servicios!</Text>
               <Text style={styles.filterNoticeText}>
                 Selecciona una categoría de servicio y/o tipo de vehículo para ver los servicios disponibles.
@@ -599,7 +600,7 @@ export default function BookAppointment() {
             
             {/* Filtro por categoría de servicio */}
             <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>🔧 Categoría de Servicio:</Text>
+              <Text style={styles.filterLabel}><Ionicons name="construct-outline" size={16} color="#666" /> Categoría de Servicio:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
                 <View style={styles.filterOptionsRow}>
                   {categoriasServicio.map((tipo) => (
@@ -627,7 +628,7 @@ export default function BookAppointment() {
 
             {/* Filtro por tipo de vehículo */}
             <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>🚗 Tipo de Vehículo:</Text>
+              <Text style={styles.filterLabel}><Ionicons name="car-outline" size={16} color="#666" /> Tipo de Vehículo:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
                 <View style={styles.filterOptionsRow}>
                   {tiposVehiculoFiltro.map((tipo) => (
@@ -665,7 +666,7 @@ export default function BookAppointment() {
                   style={styles.limpiarFiltrosButton} 
                   onPress={limpiarFiltros}
                 >
-                  <Text style={styles.limpiarFiltrosText}>✕ Limpiar filtros</Text>
+                  <Text style={styles.limpiarFiltrosText}><Ionicons name="close" size={14} color="#fff" /> Limpiar filtros</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -677,12 +678,12 @@ export default function BookAppointment() {
                 <View style={styles.filtrosActivosTags}>
                   {filtroTipoServicio && (
                     <View style={styles.filtroActivoTag}>
-                      <Text style={styles.filtroActivoTagText}>🔧 {filtroTipoServicio}</Text>
+                      <Text style={styles.filtroActivoTagText}><Ionicons name="construct-outline" size={12} color="#1976D2" /> {filtroTipoServicio}</Text>
                     </View>
                   )}
                   {filtroTipoVehiculo && (
                     <View style={styles.filtroActivoTag}>
-                      <Text style={styles.filtroActivoTagText}>🚗 {filtroTipoVehiculo}</Text>
+                      <Text style={styles.filtroActivoTagText}><Ionicons name="car-outline" size={12} color="#1976D2" /> {filtroTipoVehiculo}</Text>
                     </View>
                   )}
                 </View>
@@ -718,7 +719,7 @@ export default function BookAppointment() {
                             styles.planBadgeText,
                             isSelected && styles.planBadgeTextSelected
                           ]}>
-                            ⭐ Incluido en tu plan
+                            <Ionicons name="star" size={12} color="#FFD700" /> Incluido en tu plan
                           </Text>
                         </View>
                       )}
@@ -755,7 +756,7 @@ export default function BookAppointment() {
                           styles.empresasCountText,
                           isSelected && styles.empresasCountTextSelected
                         ]}>
-                          🏢 {servicio.cantidad_empresas || 0} {(servicio.cantidad_empresas === 1) ? 'empresa lo ofrece' : 'empresas lo ofrecen'}
+                          <Ionicons name="business-outline" size={12} color="#666" /> {servicio.cantidad_empresas || 0} {(servicio.cantidad_empresas === 1) ? 'empresa lo ofrece' : 'empresas lo ofrecen'}
                         </Text>
                       </View>
                       {servicio.tipo_vehiculo_aplicable && (
@@ -813,7 +814,7 @@ export default function BookAppointment() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Text style={styles.gpsButtonIcon}>📍</Text>
+                    <Ionicons name="location" size={18} color="#fff" style={styles.gpsButtonIcon} />
                     <Text style={styles.gpsButtonText}>
                       {userLocation ? 'Ubicación obtenida' : 'Usar mi ubicación'}
                     </Text>
@@ -833,7 +834,7 @@ export default function BookAppointment() {
                     styles.ordenarButtonText,
                     ordenarPorDistancia && styles.ordenarButtonTextActive
                   ]}>
-                    {ordenarPorDistancia ? '✓ Más cercanas primero' : 'Ordenar por cercanía'}
+                    {ordenarPorDistancia ? <><Ionicons name="checkmark" size={14} color="#fff" /> Más cercanas primero</> : 'Ordenar por cercanía'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -869,7 +870,7 @@ export default function BookAppointment() {
                           styles.distanciaBadgeText,
                           index === 0 && ordenarPorDistancia && styles.distanciaBadgeTextCercana
                         ]}>
-                          {index === 0 && ordenarPorDistancia ? '🏆 Más cercana • ' : ''}
+                          {index === 0 && ordenarPorDistancia ? <><Ionicons name="trophy" size={12} color="#FFD700" /> Más cercana • </> : ''}
                           {formatearDistancia(empresa.distancia)}
                         </Text>
                       </View>
@@ -885,7 +886,7 @@ export default function BookAppointment() {
 
                     {/* Dirección */}
                     <View style={styles.empresaInfoRow}>
-                      <Text style={styles.empresaInfoIcon}>📍</Text>
+                      <Ionicons name="location-outline" size={16} color="#666" style={styles.empresaInfoIcon} />
                       <Text style={[
                         styles.empresaDireccion,
                         selectedEmpresa === empresa.id_empresa && styles.selectedSubText
@@ -897,7 +898,7 @@ export default function BookAppointment() {
                     {/* Teléfono */}
                     {empresa.telefono && (
                       <View style={styles.empresaInfoRow}>
-                        <Text style={styles.empresaInfoIcon}>📞</Text>
+                        <Ionicons name="call-outline" size={16} color="#666" style={styles.empresaInfoIcon} />
                         <Text style={[
                           styles.empresaTelefono,
                           selectedEmpresa === empresa.id_empresa && styles.selectedSubText
@@ -910,7 +911,7 @@ export default function BookAppointment() {
                     {/* Email */}
                     {empresa.email && (
                       <View style={styles.empresaInfoRow}>
-                        <Text style={styles.empresaInfoIcon}>✉️</Text>
+                        <Ionicons name="mail-outline" size={16} color="#666" style={styles.empresaInfoIcon} />
                         <Text style={[
                           styles.empresaHorario,
                           selectedEmpresa === empresa.id_empresa && styles.selectedSubText
@@ -933,7 +934,7 @@ export default function BookAppointment() {
                             llamarEmpresa(empresa.telefono);
                           }}
                         >
-                          <Text style={styles.accionButtonText}>📞 Llamar</Text>
+                          <Text style={styles.accionButtonText}><Ionicons name="call" size={14} color="#0C553C" /> Llamar</Text>
                         </TouchableOpacity>
                       )}
                       
@@ -948,7 +949,7 @@ export default function BookAppointment() {
                             abrirMapa(empresa);
                           }}
                         >
-                          <Text style={styles.accionButtonText}>🗺️ Ver mapa</Text>
+                          <Text style={styles.accionButtonText}><Ionicons name="map-outline" size={14} color="#0C553C" /> Ver mapa</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -1122,15 +1123,15 @@ export default function BookAppointment() {
                         </Text>
                         {isOcupado ? (
                           <View style={styles.ocupadoBadge}>
-                            <Text style={styles.ocupadoBadgeText}>🔒</Text>
+                            <Ionicons name="lock-closed" size={12} color="#fff" />
                           </View>
                         ) : isPasado ? (
                           <View style={styles.pasadoBadge}>
-                            <Text style={styles.pasadoBadgeText}>⏰</Text>
+                            <Ionicons name="time-outline" size={12} color="#fff" />
                           </View>
                         ) : (
                           <View style={styles.disponibleBadge}>
-                            <Text style={styles.disponibleBadgeText}>✓</Text>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
                           </View>
                         )}
                       </View>
@@ -1148,7 +1149,7 @@ export default function BookAppointment() {
             {todosLosHorarios.length > 0 && (
               <View style={styles.disponibilidadResumen}>
                 <Text style={styles.disponibilidadTexto}>
-                  📊 {horariosDisponibles.length} disponibles de {todosLosHorarios.length} horarios
+                  <Ionicons name="stats-chart-outline" size={14} color="#1565C0" /> {horariosDisponibles.length} disponibles de {todosLosHorarios.length} horarios
                 </Text>
                 {horasOcupadas.length > 0 && (
                   <Text style={styles.ocupadosTexto}>

@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, S
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR } from '../services/api';
+import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva } from '../services/api';
 
 export default function MyAppointments() {
   const router = useRouter();
@@ -102,10 +102,72 @@ export default function MyAppointments() {
     setShowDetails(false);
   };
 
-  const handleCancel = async (id: number) => {
-    // Aquí iría la llamada al backend para cancelar
-    Alert.alert('Info', 'Funcionalidad de cancelación en desarrollo');
-    closeDetails();
+  // Función para verificar si se puede cancelar (12 horas antes)
+  const canCancelReservation = (reserva: Reserva): { canCancel: boolean; hoursRemaining: number } => {
+    const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora}`);
+    const ahora = new Date();
+    const diferenciaMs = fechaReserva.getTime() - ahora.getTime();
+    const horasRestantes = diferenciaMs / (1000 * 60 * 60);
+    
+    return {
+      canCancel: horasRestantes >= 12,
+      hoursRemaining: Math.max(0, Math.floor(horasRestantes))
+    };
+  };
+
+  const handleCancel = async (reserva: Reserva) => {
+    const { canCancel, hoursRemaining } = canCancelReservation(reserva);
+    
+    if (!canCancel) {
+      Alert.alert(
+        'No es posible cancelar',
+        `Solo puedes cancelar tu cita hasta 12 horas antes de la hora programada.\n\nTu cita está programada para:\nFecha: ${new Date(reserva.fecha).toLocaleDateString()}\nHora: ${reserva.hora.toString().substring(0, 5)}\n\nTiempo restante: ${hoursRemaining} horas.\n\nSi necesitas cancelar, por favor contacta a soporte.`,
+        [{ text: 'Entendido', style: 'default' }]
+      );
+      return;
+    }
+
+    // Confirmar cancelación
+    Alert.alert(
+      'Cancelar Reserva',
+      `¿Estás seguro de que deseas cancelar esta cita?\n\nServicio: ${reserva.servicios?.map(s => s.nombre_servicio).join(', ')}\nFecha: ${new Date(reserva.fecha).toLocaleDateString()}\nHora: ${reserva.hora.toString().substring(0, 5)}\nEmpresa: ${reserva.nombre_empresa}\n\nEsta acción no se puede deshacer.`,
+      [
+        { text: 'No, mantener', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const user = await getUser();
+              if (!user) {
+                Alert.alert('Error', 'No se pudo obtener la información del usuario');
+                return;
+              }
+              
+              const userId = user.id || (user as any).id_usuario;
+              const response = await cancelarReserva(reserva.id_reserva, userId);
+              
+              if (response.success) {
+                Alert.alert(
+                  'Éxito',
+                  'Tu reserva ha sido cancelada correctamente.',
+                  [{ text: 'OK', onPress: () => fetchReservations() }]
+                );
+              } else {
+                Alert.alert('Error', response.message || 'No se pudo cancelar la reserva');
+              }
+            } catch (error) {
+              console.error('Error al cancelar reserva:', error);
+              Alert.alert('Error', 'Ocurrió un error al cancelar la reserva');
+            } finally {
+              setLoading(false);
+              closeDetails();
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Función para verificar si se puede editar (6 horas antes)
@@ -302,7 +364,7 @@ export default function MyAppointments() {
               <TouchableOpacity style={styles.actionBtn} onPress={() => startReschedule(item)}>
                 <Text style={styles.actionText}>Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={() => handleCancel(item.id_reserva)}>
+              <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={() => handleCancel(item)}>
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
             </>
@@ -403,7 +465,7 @@ export default function MyAppointments() {
                 
                 <View style={{ flexDirection: 'row', marginTop: 20, justifyContent: 'space-between' }}>
                   {(selected.estado === 'pendiente' || selected.estado === 'confirmada') && (
-                    <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#e74c3c', flex: 1, marginRight: 5 }]} onPress={() => handleCancel(selected.id_reserva)}>
+                    <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#e74c3c', flex: 1, marginRight: 5 }]} onPress={() => handleCancel(selected)}>
                       <Text style={[styles.modalBtnText, { color: '#fff' }]}>Cancelar</Text>
                     </TouchableOpacity>
                   )}

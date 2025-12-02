@@ -33,6 +33,9 @@ export default function CompanyPayments() {
   const [periodoDetalle, setPeriodoDetalle] = useState<PeriodoLiquidacion | null>(null);
   const [detallesLiquidacion, setDetallesLiquidacion] = useState<DetalleLiquidacion[]>([]);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
+  
+  // Modal de reservas pendientes
+  const [modalReservasVisible, setModalReservasVisible] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -357,9 +360,15 @@ export default function CompanyPayments() {
             ))}
 
             {reservasPendientes.length > 5 && (
-              <Text style={styles.verMasText}>
-                +{reservasPendientes.length - 5} reservas más
-              </Text>
+              <TouchableOpacity 
+                style={styles.verTodasButton}
+                onPress={() => setModalReservasVisible(true)}
+              >
+                <Ionicons name="eye-outline" size={18} color="#0C553C" />
+                <Text style={styles.verTodasText}>
+                  Ver todas ({reservasPendientes.length} reservas)
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -465,6 +474,79 @@ export default function CompanyPayments() {
             <TouchableOpacity 
               style={styles.modalCloseButton}
               onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de todas las reservas pendientes */}
+      <Modal
+        visible={modalReservasVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalReservasVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Reservas Sin Liquidar ({reservasPendientes.length})
+              </Text>
+              <TouchableOpacity onPress={() => setModalReservasVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.reservasModalInfo}>
+                <Ionicons name="information-circle-outline" size={20} color="#0C553C" />
+                <Text style={styles.reservasModalInfoText}>
+                  Estas reservas completadas aún no han sido incluidas en un período de liquidación
+                </Text>
+              </View>
+
+              <View style={styles.reservasModalTotal}>
+                <Text style={styles.reservasModalTotalLabel}>Total pendiente:</Text>
+                <Text style={styles.reservasModalTotalValue}>
+                  {formatCurrency(reservasPendientes.reduce((sum, r) => sum + r.total_servicio, 0))}
+                </Text>
+              </View>
+
+              {reservasPendientes.map((reserva) => (
+                <View key={reserva.id_reserva} style={styles.reservaModalItem}>
+                  <View style={styles.reservaModalHeader}>
+                    <Text style={styles.reservaModalNumero}>#{reserva.numero_reserva}</Text>
+                    <Text style={styles.reservaModalMonto}>{formatCurrency(reserva.total_servicio)}</Text>
+                  </View>
+                  <View style={styles.reservaModalDetails}>
+                    <View style={styles.reservaModalDetailRow}>
+                      <Ionicons name="calendar-outline" size={14} color="#666" />
+                      <Text style={styles.reservaModalDetailText}>{formatDate(reserva.fecha)}</Text>
+                    </View>
+                    {reserva.cliente && (
+                      <View style={styles.reservaModalDetailRow}>
+                        <Ionicons name="person-outline" size={14} color="#666" />
+                        <Text style={styles.reservaModalDetailText}>{reserva.cliente}</Text>
+                      </View>
+                    )}
+                    {reserva.servicios && reserva.servicios.length > 0 && (
+                      <View style={styles.reservaModalDetailRow}>
+                        <Ionicons name="car-outline" size={14} color="#666" />
+                        <Text style={styles.reservaModalDetailText} numberOfLines={1}>
+                          {reserva.servicios.map(s => s.nombre).join(', ')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setModalReservasVisible(false)}
             >
               <Text style={styles.modalCloseButtonText}>Cerrar</Text>
             </TouchableOpacity>
@@ -827,6 +909,91 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     fontWeight: '500',
+  },
+  verTodasButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  verTodasText: {
+    fontSize: 14,
+    color: '#0C553C',
+    fontWeight: '600',
+  },
+  reservasModalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    gap: 10,
+  },
+  reservasModalInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#0C553C',
+  },
+  reservasModalTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0C553C',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  reservasModalTotalLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  reservasModalTotalValue: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  reservaModalItem: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0C553C',
+  },
+  reservaModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reservaModalNumero: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  reservaModalMonto: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0C553C',
+  },
+  reservaModalDetails: {
+    gap: 6,
+  },
+  reservaModalDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reservaModalDetailText: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
   },
   // Modal styles
   modalOverlay: {
