@@ -871,7 +871,7 @@ export const eliminarFotoPerfil = async (): Promise<ApiResponse<any>> => {
  * Actualizar foto de perfil del cliente/usuario
  */
 export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<ApiResponse<{ profile_picture: string }>> => {
-    const token = await AsyncStorage.getItem('userToken');
+    const token = await AsyncStorage.getItem('token');
     
     const formData = new FormData();
     
@@ -910,7 +910,7 @@ export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<Api
  * Eliminar foto de perfil del cliente/usuario
  */
 export const eliminarFotoPerfilUsuario = async (): Promise<ApiResponse<any>> => {
-    const token = await AsyncStorage.getItem('userToken');
+    const token = await AsyncStorage.getItem('token');
     
     try {
         const response = await fetch(`${API_BASE_URL}/auth/profile/foto`, {
