@@ -1,0 +1,33 @@
+# Archivos temporales de Windows
+AppData/
+*.tmp
+Temp/
+
+# Node modules (se reinstalan en el servidor)
+node_modules/
+
+# Archivos de desarrollo
+.git/
+.expo/
+.vscode/
+*.log
+
+# Archivos de documentación
+*.md
+!README.md
+
+# Archivos de prueba
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Archivos de configuración local
+.env
+.env.local
+.env.development
+
+# Otros
+.DS_Store
+Thumbs.db
