@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, SectionList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR } from '../services/api';
 
 export default function MyAppointments() {
@@ -125,8 +126,8 @@ export default function MyAppointments() {
     
     if (!canEdit) {
       Alert.alert(
-        '⚠️ No es posible reagendar',
-        `Solo puedes reagendar tu cita hasta 6 horas antes de la hora programada.\n\nTu cita está programada para:\n📅 ${new Date(item.fecha).toLocaleDateString()}\n🕐 ${item.hora.toString().substring(0, 5)}\n\nTiempo restante: ${hoursRemaining} horas.\n\nSi necesitas cancelar o modificar, por favor contacta a soporte.`,
+        'No es posible reagendar',
+        `Solo puedes reagendar tu cita hasta 6 horas antes de la hora programada.\n\nTu cita está programada para:\nFecha: ${new Date(item.fecha).toLocaleDateString()}\nHora: ${item.hora.toString().substring(0, 5)}\n\nTiempo restante: ${hoursRemaining} horas.\n\nSi necesitas cancelar o modificar, por favor contacta a soporte.`,
         [{ text: 'Entendido', style: 'default' }]
       );
       return;
@@ -134,8 +135,8 @@ export default function MyAppointments() {
     
     // Mostrar información al usuario antes de continuar
     Alert.alert(
-      '📝 Reagendar Cita',
-      `Puedes modificar únicamente la fecha y hora de tu reserva.\n\n⏰ Recuerda: Los cambios deben realizarse al menos 6 horas antes de la cita.\n\nTiempo disponible para cambios: ${hoursRemaining} horas`,
+      'Reagendar Cita',
+      `Puedes modificar únicamente la fecha y hora de tu reserva.\n\nRecuerda: Los cambios deben realizarse al menos 6 horas antes de la cita.\n\nTiempo disponible para cambios: ${hoursRemaining} horas`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
@@ -158,10 +159,10 @@ export default function MyAppointments() {
     setSelected(null);
   };
 
-  const getServiceIcon = (nombreServicio: string) => {
-    if (nombreServicio.toLowerCase().includes('lavado')) return '🚗';
-    if (nombreServicio.toLowerCase().includes('desinfección')) return '🧼';
-    return '🔧';
+  const getServiceIcon = (nombreServicio: string): keyof typeof Ionicons.glyphMap => {
+    if (nombreServicio.toLowerCase().includes('lavado')) return 'car-outline';
+    if (nombreServicio.toLowerCase().includes('desinfección')) return 'sparkles-outline';
+    return 'construct-outline';
   };
 
   // Función para abrir el escáner QR
@@ -207,7 +208,7 @@ export default function MyAppointments() {
       
       if (response.success) {
         Alert.alert(
-          '✅ ¡Servicio Completado!',
+          'Servicio Completado',
           `Tu reserva #${numeroReserva} ha sido marcada como completada.\n\n¡Gracias por usar nuestro servicio!`,
           [
             { 
@@ -221,7 +222,7 @@ export default function MyAppointments() {
         );
       } else {
         Alert.alert(
-          '❌ Error',
+          'Error',
           response.message || 'No se pudo verificar la reserva. Asegúrate de escanear el QR correcto.',
           [
             { 
@@ -242,7 +243,7 @@ export default function MyAppointments() {
     } catch (error) {
       console.error('Error al verificar QR:', error);
       Alert.alert(
-        '❌ Error',
+        'Error',
         'Ocurrió un error al procesar el código QR. Por favor intenta de nuevo.',
         [
           { 
@@ -275,7 +276,7 @@ export default function MyAppointments() {
     return (
       <TouchableOpacity style={styles.card} onPress={() => openDetails(item)}>
         <View style={styles.cardIcon}>
-          <Text style={styles.iconText}>{getServiceIcon(nombreServicio)}</Text>
+          <Ionicons name={getServiceIcon(nombreServicio)} size={28} color="#0C553C" />
         </View>
         <View style={styles.cardContent}>
           <Text style={styles.service}>{nombreServicio} {item.servicios && item.servicios.length > 1 ? `+ ${item.servicios.length - 1}` : ''}</Text>
@@ -293,7 +294,10 @@ export default function MyAppointments() {
           {(item.estado === 'pendiente' || item.estado === 'confirmada' || item.estado === 'en_proceso') && (
             <>
               <TouchableOpacity style={styles.qrScanBtn} onPress={openQRScanner}>
-                <Text style={styles.qrScanBtnText}>📷 Escanear QR</Text>
+                <View style={styles.qrScanBtnContent}>
+                  <Ionicons name="camera-outline" size={14} color="#fff" />
+                  <Text style={styles.qrScanBtnText}> Escanear QR</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => startReschedule(item)}>
                 <Text style={styles.actionText}>Editar</Text>
@@ -417,11 +421,20 @@ export default function MyAppointments() {
       <Modal visible={showReschedule} animationType="slide" transparent>
         <View style={styles.modalWrap}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>📅 Reagendar Cita</Text>
+            <View style={styles.modalTitleRow}>
+              <Ionicons name="calendar-outline" size={22} color="#0C553C" />
+              <Text style={styles.modalTitle}> Reagendar Cita</Text>
+            </View>
             
             <View style={styles.infoBox}>
-              <Text style={styles.infoText}>ℹ️ Solo puedes modificar la fecha y hora.</Text>
-              <Text style={styles.infoText}>⏰ Cambios permitidos hasta 12 horas antes.</Text>
+              <View style={styles.infoRow}>
+                <Ionicons name="information-circle-outline" size={16} color="#2E7D32" />
+                <Text style={styles.infoText}> Solo puedes modificar la fecha y hora.</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="time-outline" size={16} color="#2E7D32" />
+                <Text style={styles.infoText}> Cambios permitidos hasta 6 horas antes.</Text>
+              </View>
             </View>
             
             <Text style={styles.inputLabel}>Nueva Fecha:</Text>
@@ -464,7 +477,10 @@ export default function MyAppointments() {
                 setVerifying(false);
               }}
             >
-              <Text style={styles.scannerCloseBtnText}>✕ Cerrar</Text>
+              <View style={styles.scannerCloseBtnContent}>
+                <Ionicons name="close" size={18} color="#fff" />
+                <Text style={styles.scannerCloseBtnText}> Cerrar</Text>
+              </View>
             </TouchableOpacity>
             <Text style={styles.scannerTitle}>Escanear QR</Text>
             <View style={{ width: 80 }} />
@@ -472,9 +488,12 @@ export default function MyAppointments() {
           
           <View style={styles.scannerContent}>
             <View style={styles.scannerInstructions}>
-              <Text style={styles.scannerInstructionsText}>
-                📱 Escanea el código QR que te muestra la empresa para confirmar que el servicio fue completado
-              </Text>
+              <View style={styles.scannerInstructionsRow}>
+                <Ionicons name="phone-portrait-outline" size={20} color="#333" />
+                <Text style={styles.scannerInstructionsText}>
+                  Escanea el código QR que te muestra la empresa para confirmar que el servicio fue completado
+                </Text>
+              </View>
             </View>
             
             <View style={styles.cameraContainer}>
@@ -584,6 +603,21 @@ const styles = StyleSheet.create({
     fontWeight: '700', 
     fontSize: 12 
   },
+  qrScanBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Estilos para modal
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   // Estilos para el escáner QR
   scannerContainer: { 
     flex: 1, 
@@ -609,6 +643,10 @@ const styles = StyleSheet.create({
     fontWeight: '700', 
     fontSize: 14 
   },
+  scannerCloseBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   scannerTitle: { 
     color: '#fff', 
     fontSize: 18, 
@@ -630,7 +668,13 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     color: '#333', 
     textAlign: 'center', 
-    lineHeight: 22 
+    lineHeight: 22,
+    flex: 1,
+    marginLeft: 8,
+  },
+  scannerInstructionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   cameraContainer: { 
     width: 280, 
