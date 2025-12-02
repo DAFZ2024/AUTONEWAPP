@@ -821,7 +821,7 @@ export const cambiarContrasenaEmpresa = async (data: CambiarContrasenaData): Pro
  * Actualizar foto de perfil de la empresa
  */
 export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiResponse<{ profile_image: string }>> => {
-    const token = await AsyncStorage.getItem('empresaToken');
+    const token = await AsyncStorage.getItem('token');
     
     const formData = new FormData();
     
