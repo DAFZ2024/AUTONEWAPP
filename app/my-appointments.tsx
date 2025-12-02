@@ -107,7 +107,7 @@ export default function MyAppointments() {
     closeDetails();
   };
 
-  // Función para verificar si se puede editar (12 horas antes)
+  // Función para verificar si se puede editar (6 horas antes)
   const canEditReservation = (reserva: Reserva): { canEdit: boolean; hoursRemaining: number } => {
     const fechaReserva = new Date(`${reserva.fecha}T${reserva.hora}`);
     const ahora = new Date();
@@ -115,7 +115,7 @@ export default function MyAppointments() {
     const horasRestantes = diferenciaMs / (1000 * 60 * 60);
     
     return {
-      canEdit: horasRestantes >= 12,
+      canEdit: horasRestantes >= 6,
       hoursRemaining: Math.max(0, Math.floor(horasRestantes))
     };
   };
@@ -126,7 +126,7 @@ export default function MyAppointments() {
     if (!canEdit) {
       Alert.alert(
         '⚠️ No es posible reagendar',
-        `Solo puedes reagendar tu cita hasta 12 horas antes de la hora programada.\n\nTu cita está programada para:\n📅 ${new Date(item.fecha).toLocaleDateString()}\n🕐 ${item.hora.toString().substring(0, 5)}\n\nTiempo restante: ${hoursRemaining} horas.\n\nSi necesitas cancelar o modificar, por favor contacta a soporte.`,
+        `Solo puedes reagendar tu cita hasta 6 horas antes de la hora programada.\n\nTu cita está programada para:\n📅 ${new Date(item.fecha).toLocaleDateString()}\n🕐 ${item.hora.toString().substring(0, 5)}\n\nTiempo restante: ${hoursRemaining} horas.\n\nSi necesitas cancelar o modificar, por favor contacta a soporte.`,
         [{ text: 'Entendido', style: 'default' }]
       );
       return;
@@ -135,7 +135,7 @@ export default function MyAppointments() {
     // Mostrar información al usuario antes de continuar
     Alert.alert(
       '📝 Reagendar Cita',
-      `Puedes modificar únicamente la fecha y hora de tu reserva.\n\n⏰ Recuerda: Los cambios deben realizarse al menos 12 horas antes de la cita.\n\nTiempo disponible para cambios: ${hoursRemaining} horas`,
+      `Puedes modificar únicamente la fecha y hora de tu reserva.\n\n⏰ Recuerda: Los cambios deben realizarse al menos 6 horas antes de la cita.\n\nTiempo disponible para cambios: ${hoursRemaining} horas`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
