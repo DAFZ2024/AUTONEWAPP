@@ -151,6 +151,9 @@ export default function LoginScreen() {
       const endpoint = role === 'empresa' ? '/auth/empresa/login' : '/auth/login';
       const emailField = role === 'empresa' ? 'email' : 'correo';
       
+      console.log('[LOGIN] Intentando login en:', `${API_URL}${endpoint}`);
+      console.log('[LOGIN] Datos:', { [emailField]: loginEmail });
+      
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -162,7 +165,9 @@ export default function LoginScreen() {
         }),
       });
 
+      console.log('[LOGIN] Response status:', response.status);
       const data = await response.json();
+      console.log('[LOGIN] Response data:', JSON.stringify(data));
 
       if (!response.ok) {
         Alert.alert('Error', data.message || 'Error al iniciar sesión');
@@ -201,9 +206,13 @@ export default function LoginScreen() {
           : 'Nos alegra verte de nuevo',
         role === 'empresa' ? 'empresa' : 'client'
       );
-    } catch (error) {
-      console.error('Error en login:', error);
-      Alert.alert('Error', 'No se pudo conectar con el servidor. Verifica tu conexión.');
+    } catch (error: any) {
+      console.error('[LOGIN] Error completo:', error);
+      const errorMessage = error?.message || 'Error desconocido';
+      Alert.alert(
+        'Error de conexión', 
+        `No se pudo conectar con el servidor.\n\nURL: ${API_URL}\nError: ${errorMessage}\n\nVerifica tu conexión a internet.`
+      );
     } finally {
       setLoading(false);
     }
