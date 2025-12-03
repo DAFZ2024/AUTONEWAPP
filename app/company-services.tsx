@@ -10,9 +10,11 @@ import {
   Modal,
   TextInput,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   getServiciosCompletos,
   solicitarServicio,
@@ -23,6 +25,7 @@ import {
   getEmpresa,
 } from '../services/api';
 
+const { width } = Dimensions.get('window');
 type TabType = 'asignados' | 'disponibles' | 'solicitudes';
 
 export default function CompanyServicesScreen() {
@@ -188,29 +191,58 @@ export default function CompanyServicesScreen() {
 
   const renderServicioAsignado = (servicio: ServicioAsignado) => (
     <View key={servicio.id_servicio} style={styles.servicioCard}>
-      <View style={styles.servicioHeader}>
-        <View style={styles.servicioIconContainer}>
-          <Ionicons name="checkmark-circle" size={24} color="#0C553C" />
+      {/* Barra de estado superior */}
+      <LinearGradient
+        colors={['#10b981', '#059669']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.cardStatusBar}
+      />
+      
+      <View style={styles.cardContent}>
+        <View style={styles.servicioHeader}>
+          <View style={styles.servicioIconContainer}>
+            <LinearGradient
+              colors={['#10b981', '#059669']}
+              style={styles.servicioIconGradient}
+            >
+              <Ionicons name="checkmark-circle" size={24} color="#fff" />
+            </LinearGradient>
+          </View>
+          <View style={styles.servicioInfo}>
+            <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
+            <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+          </View>
+          <View style={styles.activoBadge}>
+            <Ionicons name="shield-checkmark" size={12} color="#059669" />
+            <Text style={styles.activoBadgeText}>Activo</Text>
+          </View>
         </View>
-        <View style={styles.servicioInfo}>
-          <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
-          <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
-        </View>
-        <View style={styles.activoBadge}>
-          <Text style={styles.activoBadgeText}>Activo</Text>
-        </View>
-      </View>
-      <Text style={styles.servicioDescripcion} numberOfLines={2}>
-        {servicio.descripcion}
-      </Text>
-      <View style={styles.servicioStats}>
-        <View style={styles.statItem}>
-          <Ionicons name="calendar-outline" size={16} color="#666" />
-          <Text style={styles.statText}>{servicio.total_reservas || 0} reservas</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="cash-outline" size={16} color="#666" />
-          <Text style={styles.statText}>{formatCurrency(Number(servicio.ingresos_generados) || 0)}</Text>
+        
+        <Text style={styles.servicioDescripcion} numberOfLines={2}>
+          {servicio.descripcion}
+        </Text>
+        
+        <View style={styles.servicioStats}>
+          <View style={styles.statItem}>
+            <View style={styles.statIconContainer}>
+              <Ionicons name="calendar-outline" size={14} color="#3b82f6" />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{servicio.total_reservas || 0}</Text>
+              <Text style={styles.statLabel}>Reservas</Text>
+            </View>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <View style={styles.statIconContainer}>
+              <Ionicons name="cash-outline" size={14} color="#10b981" />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{formatCurrency(Number(servicio.ingresos_generados) || 0)}</Text>
+              <Text style={styles.statLabel}>Ingresos</Text>
+            </View>
+          </View>
         </View>
       </View>
     </View>
@@ -224,146 +256,333 @@ export default function CompanyServicesScreen() {
 
     return (
       <View key={servicio.id_servicio} style={styles.servicioCard}>
-        <View style={styles.servicioHeader}>
-          <View style={[styles.servicioIconContainer, { backgroundColor: '#FEF3C7' }]}>
-            <Ionicons name="add-circle-outline" size={24} color="#F59E0B" />
+        {/* Barra de estado superior */}
+        <LinearGradient
+          colors={['#f59e0b', '#d97706']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.cardStatusBar}
+        />
+        
+        <View style={styles.cardContent}>
+          <View style={styles.servicioHeader}>
+            <View style={styles.servicioIconContainer}>
+              <LinearGradient
+                colors={['#f59e0b', '#d97706']}
+                style={styles.servicioIconGradient}
+              >
+                <Ionicons name="add-circle" size={24} color="#fff" />
+              </LinearGradient>
+            </View>
+            <View style={styles.servicioInfo}>
+              <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
+              <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+            </View>
+            {tieneSolicitudPendiente && (
+              <View style={styles.pendingBadge}>
+                <Ionicons name="hourglass" size={12} color="#f59e0b" />
+                <Text style={styles.pendingBadgeText}>Pendiente</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.servicioInfo}>
-            <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
-            <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
-          </View>
-        </View>
-        <Text style={styles.servicioDescripcion} numberOfLines={2}>
-          {servicio.descripcion}
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.solicitarBtn,
-            tieneSolicitudPendiente && styles.solicitarBtnDisabled,
-          ]}
-          onPress={() => !tieneSolicitudPendiente && handleSolicitarServicio(servicio)}
-          disabled={tieneSolicitudPendiente}
-        >
-          <Ionicons
-            name={tieneSolicitudPendiente ? 'hourglass-outline' : 'paper-plane-outline'}
-            size={18}
-            color={tieneSolicitudPendiente ? '#9CA3AF' : '#fff'}
-          />
-          <Text
-            style={[
-              styles.solicitarBtnText,
-              tieneSolicitudPendiente && styles.solicitarBtnTextDisabled,
-            ]}
-          >
-            {tieneSolicitudPendiente ? 'Solicitud Pendiente' : 'Solicitar Servicio'}
+          
+          <Text style={styles.servicioDescripcion} numberOfLines={2}>
+            {servicio.descripcion}
           </Text>
-        </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.solicitarBtn, tieneSolicitudPendiente && styles.solicitarBtnDisabled]}
+            onPress={() => !tieneSolicitudPendiente && handleSolicitarServicio(servicio)}
+            disabled={tieneSolicitudPendiente}
+            activeOpacity={0.8}
+          >
+            {tieneSolicitudPendiente ? (
+              <View style={styles.solicitarBtnContent}>
+                <Ionicons name="hourglass-outline" size={18} color="#9CA3AF" />
+                <Text style={styles.solicitarBtnTextDisabled}>Solicitud en Proceso</Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={['#0C553C', '#0A4832']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.solicitarBtnGradient}
+              >
+                <Ionicons name="paper-plane" size={18} color="#fff" />
+                <Text style={styles.solicitarBtnText}>Solicitar Servicio</Text>
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
 
-  const renderSolicitud = (solicitud: SolicitudServicio) => (
-    <View key={solicitud.id_solicitud} style={styles.solicitudCard}>
-      <View style={styles.solicitudHeader}>
-        <View style={styles.servicioInfo}>
-          <Text style={styles.servicioNombre}>{solicitud.nombre_servicio}</Text>
-          <Text style={styles.solicitudFecha}>
-            Solicitado el {formatDate(solicitud.fecha_solicitud)}
-          </Text>
-        </View>
-        <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(solicitud.estado) + '20' }]}>
-          <Text style={[styles.estadoBadgeText, { color: getEstadoColor(solicitud.estado) }]}>
-            {getEstadoLabel(solicitud.estado)}
-          </Text>
+  const renderSolicitud = (solicitud: SolicitudServicio) => {
+    const estadoConfig = {
+      pendiente: { colors: ['#f59e0b', '#d97706'], icon: 'hourglass' },
+      aprobada: { colors: ['#10b981', '#059669'], icon: 'checkmark-circle' },
+      rechazada: { colors: ['#ef4444', '#dc2626'], icon: 'close-circle' },
+      en_revision: { colors: ['#3b82f6', '#2563eb'], icon: 'eye' },
+    };
+    const config = estadoConfig[solicitud.estado as keyof typeof estadoConfig] || estadoConfig.pendiente;
+
+    return (
+      <View key={solicitud.id_solicitud} style={styles.solicitudCard}>
+        {/* Barra de estado superior */}
+        <LinearGradient
+          colors={config.colors as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.cardStatusBar}
+        />
+        
+        <View style={styles.cardContent}>
+          <View style={styles.solicitudHeader}>
+            <View style={styles.servicioInfo}>
+              <Text style={styles.servicioNombre}>{solicitud.nombre_servicio}</Text>
+              <View style={styles.fechaContainer}>
+                <Ionicons name="calendar-outline" size={12} color="#888" />
+                <Text style={styles.solicitudFecha}>
+                  Solicitado el {formatDate(solicitud.fecha_solicitud)}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.estadoBadge, { backgroundColor: config.colors[0] + '20' }]}>
+              <Ionicons name={config.icon as any} size={12} color={config.colors[0]} />
+              <Text style={[styles.estadoBadgeText, { color: config.colors[0] }]}>
+                {getEstadoLabel(solicitud.estado)}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.solicitudMotivo}>
+            <View style={styles.motivoHeader}>
+              <Ionicons name="chatbubble-outline" size={14} color="#666" />
+              <Text style={styles.motivoLabel}>Motivo de solicitud</Text>
+            </View>
+            <Text style={styles.motivoText}>{solicitud.motivo_solicitud}</Text>
+          </View>
+
+          {solicitud.respuesta_admin && solicitud.respuesta_admin.trim() !== '' && (
+            <View style={styles.respuestaAdmin}>
+              <View style={styles.respuestaHeader}>
+                <Ionicons name="shield-checkmark" size={14} color="#3B82F6" />
+                <Text style={styles.respuestaLabel}>Respuesta del administrador</Text>
+              </View>
+              <Text style={styles.respuestaText}>{solicitud.respuesta_admin}</Text>
+            </View>
+          )}
+
+          {solicitud.estado === 'pendiente' && (
+            <TouchableOpacity
+              style={styles.cancelarSolicitudBtn}
+              onPress={() => handleCancelarSolicitud(solicitud)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close-circle" size={18} color="#EF4444" />
+              <Text style={styles.cancelarSolicitudText}>Cancelar Solicitud</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
-      
-      <View style={styles.solicitudMotivo}>
-        <Text style={styles.motivoLabel}>Motivo:</Text>
-        <Text style={styles.motivoText}>{solicitud.motivo_solicitud}</Text>
-      </View>
-
-      {solicitud.respuesta_admin && (
-        <View style={styles.respuestaAdmin}>
-          <Text style={styles.respuestaLabel}>Respuesta del administrador:</Text>
-          <Text style={styles.respuestaText}>{solicitud.respuesta_admin}</Text>
-        </View>
-      )}
-
-      {solicitud.estado === 'pendiente' && (
-        <TouchableOpacity
-          style={styles.cancelarSolicitudBtn}
-          onPress={() => handleCancelarSolicitud(solicitud)}
-        >
-          <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-          <Text style={styles.cancelarSolicitudText}>Cancelar Solicitud</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0C553C" />
-        <Text style={styles.loadingText}>Cargando servicios...</Text>
+        <LinearGradient
+          colors={['#0C553C', '#0A4832', '#083D2A']}
+          style={styles.loadingGradient}
+        >
+          <View style={styles.loadingContent}>
+            <View style={styles.loadingIconContainer}>
+              <Ionicons name="cube" size={40} color="#fff" />
+            </View>
+            <ActivityIndicator size="large" color="#fff" style={{ marginTop: 20 }} />
+            <Text style={styles.loadingText}>Cargando servicios...</Text>
+          </View>
+        </LinearGradient>
       </View>
     );
   }
 
+  // Calcular estadísticas
+  const totalIngresos = serviciosAsignados.reduce((acc, s) => acc + (Number(s.ingresos_generados) || 0), 0);
+  const totalReservas = serviciosAsignados.reduce((acc, s) => acc + (s.total_reservas || 0), 0);
+  const solicitudesPendientes = solicitudes.filter(s => s.estado === 'pendiente').length;
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F0F4F3' }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-          <Text style={styles.backButtonText}>Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Mis Servicios</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      {/* Header Premium con Gradiente */}
+      <LinearGradient
+        colors={['#0C553C', '#0A4832', '#083D2A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        {/* Decoraciones de fondo */}
+        <View style={styles.headerDecoration1} />
+        <View style={styles.headerDecoration2} />
+        <View style={styles.headerDecoration3} />
+        
+        {/* Contenido del header */}
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+            >
+              <View style={styles.backButtonCircle}>
+                <Ionicons name="arrow-back" size={20} color="#0C553C" />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconBadge}>
+                <Ionicons name="cube" size={22} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.headerSubtitle}>Gestión de</Text>
+                <Text style={styles.title}>Servicios</Text>
+              </View>
+            </View>
+            
+            <View style={styles.headerSpacer} />
+          </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'asignados' && styles.tabActive]}
-          onPress={() => setActiveTab('asignados')}
+          {/* Mini Stats en Header */}
+          <View style={styles.miniStatsContainer}>
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{serviciosAsignados.length}</Text>
+                <Text style={styles.miniStatLabel}>Activos</Text>
+              </View>
+            </View>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="calendar" size={16} color="#3b82f6" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{totalReservas}</Text>
+                <Text style={styles.miniStatLabel}>Reservas</Text>
+              </View>
+            </View>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="cash" size={16} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{formatCurrency(totalIngresos).replace('COP', '').trim()}</Text>
+                <Text style={styles.miniStatLabel}>Ingresos</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Tabs Mejorados */}
+      <View style={styles.tabWrapper}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
         >
-          <Ionicons
-            name="checkmark-circle"
-            size={18}
-            color={activeTab === 'asignados' ? '#0C553C' : '#666'}
-          />
-          <Text style={[styles.tabText, activeTab === 'asignados' && styles.tabTextActive]}>
-            Asignados ({serviciosAsignados.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'disponibles' && styles.tabActive]}
-          onPress={() => setActiveTab('disponibles')}
-        >
-          <Ionicons
-            name="add-circle"
-            size={18}
-            color={activeTab === 'disponibles' ? '#0C553C' : '#666'}
-          />
-          <Text style={[styles.tabText, activeTab === 'disponibles' && styles.tabTextActive]}>
-            Disponibles ({serviciosDisponibles.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'solicitudes' && styles.tabActive]}
-          onPress={() => setActiveTab('solicitudes')}
-        >
-          <Ionicons
-            name="document-text"
-            size={18}
-            color={activeTab === 'solicitudes' ? '#0C553C' : '#666'}
-          />
-          <Text style={[styles.tabText, activeTab === 'solicitudes' && styles.tabTextActive]}>
-            Solicitudes ({solicitudes.length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'asignados' && styles.tabActive]}
+            onPress={() => setActiveTab('asignados')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={activeTab === 'asignados' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              style={styles.tabGradient}
+            >
+              <View style={[styles.tabIconContainer, activeTab === 'asignados' && styles.tabIconContainerActive]}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={18}
+                  color={activeTab === 'asignados' ? '#fff' : '#0C553C'}
+                />
+              </View>
+              <Text style={[styles.tabText, activeTab === 'asignados' && styles.tabTextActive]}>
+                Asignados
+              </Text>
+              <View style={[styles.tabBadge, activeTab === 'asignados' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'asignados' && styles.tabBadgeTextActive]}>
+                  {serviciosAsignados.length}
+                </Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'disponibles' && styles.tabActive]}
+            onPress={() => setActiveTab('disponibles')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={activeTab === 'disponibles' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              style={styles.tabGradient}
+            >
+              <View style={[styles.tabIconContainer, activeTab === 'disponibles' && styles.tabIconContainerActive]}>
+                <Ionicons
+                  name="add-circle"
+                  size={18}
+                  color={activeTab === 'disponibles' ? '#fff' : '#f59e0b'}
+                />
+              </View>
+              <Text style={[styles.tabText, activeTab === 'disponibles' && styles.tabTextActive]}>
+                Disponibles
+              </Text>
+              <View style={[styles.tabBadge, activeTab === 'disponibles' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'disponibles' && styles.tabBadgeTextActive]}>
+                  {serviciosDisponibles.length}
+                </Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'solicitudes' && styles.tabActive]}
+            onPress={() => setActiveTab('solicitudes')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={activeTab === 'solicitudes' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              style={styles.tabGradient}
+            >
+              <View style={[styles.tabIconContainer, activeTab === 'solicitudes' && styles.tabIconContainerActive]}>
+                <Ionicons
+                  name="document-text"
+                  size={18}
+                  color={activeTab === 'solicitudes' ? '#fff' : '#3b82f6'}
+                />
+              </View>
+              <Text style={[styles.tabText, activeTab === 'solicitudes' && styles.tabTextActive]}>
+                Solicitudes
+              </Text>
+              {solicitudesPendientes > 0 && (
+                <View style={[styles.tabBadge, styles.tabBadgePending]}>
+                  <Text style={styles.tabBadgeTextPending}>{solicitudesPendientes}</Text>
+                </View>
+              )}
+              {solicitudesPendientes === 0 && (
+                <View style={[styles.tabBadge, activeTab === 'solicitudes' && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, activeTab === 'solicitudes' && styles.tabBadgeTextActive]}>
+                    {solicitudes.length}
+                  </Text>
+                </View>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Content */}
@@ -378,10 +597,12 @@ export default function CompanyServicesScreen() {
           <>
             {serviciosAsignados.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="cube-outline" size={60} color="#ccc" />
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="cube-outline" size={50} color="#9CA3AF" />
+                </View>
                 <Text style={styles.emptyText}>No tienes servicios asignados</Text>
                 <Text style={styles.emptySubtext}>
-                  Solicita nuevos servicios en la pestaña "Disponibles"
+                  Solicita nuevos servicios en la pestaña "Disponibles" para comenzar a ofrecer más opciones a tus clientes
                 </Text>
               </View>
             ) : (
@@ -394,10 +615,12 @@ export default function CompanyServicesScreen() {
           <>
             {serviciosDisponibles.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="checkmark-done-circle-outline" size={60} color="#0C553C" />
+                <View style={[styles.emptyIconContainer, { backgroundColor: '#D1FAE5' }]}>
+                  <Ionicons name="checkmark-done-circle" size={50} color="#10b981" />
+                </View>
                 <Text style={styles.emptyText}>¡Tienes todos los servicios!</Text>
                 <Text style={styles.emptySubtext}>
-                  Ya cuentas con todos los servicios disponibles en la plataforma
+                  Ya cuentas con todos los servicios disponibles en la plataforma. Excelente trabajo.
                 </Text>
               </View>
             ) : (
@@ -419,10 +642,12 @@ export default function CompanyServicesScreen() {
           <>
             {solicitudes.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="document-text-outline" size={60} color="#ccc" />
+                <View style={[styles.emptyIconContainer, { backgroundColor: '#EFF6FF' }]}>
+                  <Ionicons name="document-text" size={50} color="#3b82f6" />
+                </View>
                 <Text style={styles.emptyText}>No tienes solicitudes</Text>
                 <Text style={styles.emptySubtext}>
-                  Tus solicitudes de nuevos servicios aparecerán aquí
+                  Cuando solicites nuevos servicios, el estado de tus solicitudes aparecerá aquí
                 </Text>
               </View>
             ) : (
@@ -515,89 +740,246 @@ export default function CompanyServicesScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Loading
   loadingContainer: {
+    flex: 1,
+  },
+  loadingGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F4F3',
+  },
+  loadingContent: {
+    alignItems: 'center',
+  },
+  loadingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
+    fontWeight: '600',
   },
+
+  // Header Premium
   header: {
-    backgroundColor: '#0C553C',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 16,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  headerDecoration1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerDecoration2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  headerDecoration3: {
+    position: 'absolute',
+    top: 40,
+    right: 80,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  headerContent: {
+    zIndex: 1,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
+    marginBottom: 16,
   },
   backButton: {
+    marginRight: 12,
+  },
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    flex: 1,
+    gap: 12,
+  },
+  headerIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
   },
-  backButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
   },
   title: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'center',
     letterSpacing: 0.5,
   },
   headerSpacer: {
-    width: 85,
+    width: 40,
   },
-  tabContainer: {
+
+  // Mini Stats en Header
+  miniStatsContainer: {
     flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 8,
+  },
+  miniStatItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  miniStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniStatValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  miniStatLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  miniStatDivider: {
+    width: 1,
+    height: '70%',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 8,
+  },
+
+  // Tabs
+  tabWrapper: {
     backgroundColor: '#fff',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
+  tabScrollContent: {
+    paddingHorizontal: 12,
+    gap: 10,
+  },
   tab: {
-    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabActive: {},
+  tabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  tabActive: {
+  tabIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#E8F5F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabIconContainerActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   tabText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '600',
   },
   tabTextActive: {
-    color: '#0C553C',
+    color: '#fff',
     fontWeight: '700',
   },
+  tabBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#E8F5F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0C553C',
+  },
+  tabBadgeTextActive: {
+    color: '#fff',
+  },
+  tabBadgePending: {
+    backgroundColor: '#FEF3C7',
+  },
+  tabBadgeTextPending: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+
+  // Content
   content: {
     flex: 1,
   },
@@ -605,6 +987,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+
+  // Info Box
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -622,30 +1006,39 @@ const styles = StyleSheet.create({
     color: '#0C553C',
     lineHeight: 20,
   },
+
+  // Tarjetas de Servicio
   servicioCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardStatusBar: {
+    height: 4,
+  },
+  cardContent: {
+    padding: 16,
   },
   servicioHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   servicioIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E8F5F0',
+    marginRight: 12,
+  },
+  servicioIconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   servicioInfo: {
     flex: 1,
@@ -653,23 +1046,40 @@ const styles = StyleSheet.create({
   servicioNombre: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#1a1a1a',
     marginBottom: 2,
   },
   servicioPrecio: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#0C553C',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   activoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#D1FAE5',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   activoBadgeText: {
     fontSize: 11,
     color: '#059669',
+    fontWeight: '700',
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  pendingBadgeText: {
+    fontSize: 11,
+    color: '#D97706',
     fontWeight: '700',
   },
   servicioDescripcion: {
@@ -680,33 +1090,65 @@ const styles = StyleSheet.create({
   },
   servicioStats: {
     flexDirection: 'row',
-    gap: 20,
+    alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F0F4F3',
   },
   statItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  statText: {
-    fontSize: 13,
-    color: '#666',
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#888',
     fontWeight: '500',
   },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 16,
+  },
+
+  // Botón Solicitar
   solicitarBtn: {
+    marginTop: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  solicitarBtnDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  solicitarBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#0C553C',
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 12,
   },
-  solicitarBtnDisabled: {
-    backgroundColor: '#E5E7EB',
+  solicitarBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
   },
   solicitarBtnText: {
     color: '#fff',
@@ -715,17 +1157,21 @@ const styles = StyleSheet.create({
   },
   solicitarBtnTextDisabled: {
     color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '600',
   },
+
+  // Tarjetas de Solicitud
   solicitudCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
   },
   solicitudHeader: {
     flexDirection: 'row',
@@ -733,15 +1179,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  fechaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
   solicitudFecha: {
     fontSize: 12,
     color: '#888',
-    marginTop: 2,
   },
   estadoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   estadoBadgeText: {
     fontSize: 11,
@@ -749,15 +1203,20 @@ const styles = StyleSheet.create({
   },
   solicitudMotivo: {
     backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 12,
     marginBottom: 10,
+  },
+  motivoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
   motivoLabel: {
     fontSize: 12,
     color: '#666',
     fontWeight: '600',
-    marginBottom: 4,
   },
   motivoText: {
     fontSize: 13,
@@ -766,17 +1225,22 @@ const styles = StyleSheet.create({
   },
   respuestaAdmin: {
     backgroundColor: '#EFF6FF',
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 12,
     borderLeftWidth: 3,
     borderLeftColor: '#3B82F6',
     marginBottom: 10,
+  },
+  respuestaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
   respuestaLabel: {
     fontSize: 12,
     color: '#1D4ED8',
     fontWeight: '600',
-    marginBottom: 4,
   },
   respuestaText: {
     fontSize: 13,
@@ -788,25 +1252,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
-    borderWidth: 1,
+    paddingVertical: 12,
+    borderWidth: 1.5,
     borderColor: '#FEE2E2',
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#FEF2F2',
   },
   cancelarSolicitudText: {
     color: '#EF4444',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
+
+  // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
   },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: '#1a1a1a',
     marginTop: 16,
   },
   emptySubtext: {
@@ -815,17 +1290,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 40,
+    lineHeight: 20,
   },
+
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 20,
     maxHeight: '85%',
   },
@@ -841,12 +1318,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1a1a1a',
   },
   servicioPreview: {
     backgroundColor: '#E8F5F0',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -873,7 +1350,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#F9FAFB',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
     borderRadius: 12,
     paddingHorizontal: 16,

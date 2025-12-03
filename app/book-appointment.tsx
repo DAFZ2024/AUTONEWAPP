@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Platform, Linking, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -56,6 +56,12 @@ export default function BookAppointment() {
 
   // Paso actual del flujo (1: Servicios, 2: Empresas, 3: Fecha, 4: Hora)
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Estados para modales personalizados
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState<any>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{title: string, message: string, isSuccess: boolean}>({title: '', message: '', isSuccess: true});
 
   useEffect(() => {
     cargarServicios();
@@ -360,14 +366,24 @@ export default function BookAppointment() {
 
   const handleBookAppointment = async () => {
     if (!selectedEmpresa || selectedService.length === 0 || !selectedDate || !selectedTime) {
-      Alert.alert('Error', 'Por favor completa todos los campos requeridos');
+      setSuccessModalData({
+        title: 'Campos incompletos',
+        message: 'Por favor completa todos los campos requeridos para continuar.',
+        isSuccess: false
+      });
+      setShowSuccessModal(true);
       return;
     }
 
     // Verificar que el usuario esté logueado (puede tener 'id' o 'id_usuario')
     if (!userData || (!userData.id && !userData.id_usuario)) {
-      Alert.alert('Error', 'Debes iniciar sesión para hacer una reserva');
-      router.push('./login');
+      setSuccessModalData({
+        title: 'Sesión requerida',
+        message: 'Debes iniciar sesión para hacer una reserva.',
+        isSuccess: false
+      });
+      setShowSuccessModal(true);
+      setTimeout(() => router.push('./login'), 2000);
       return;
     }
 
@@ -378,23 +394,35 @@ export default function BookAppointment() {
     const empresaSeleccionada = empresas.find(e => e.id_empresa === selectedEmpresa);
     const total = calcularTotal();
 
-    Alert.alert(
-      'Confirmar Reserva',
-      `Empresa: ${empresaSeleccionada?.nombre_empresa}\n` +
-      `Servicios: ${serviciosSeleccionados.map(s => s.nombre_servicio).join(', ')}\n` +
-      `Fecha: ${selectedDate}\n` +
-      `Hora: ${selectedTime}\n` +
-      `Vehículo: ${placaVehiculo || 'No especificado'} - ${tipoVehiculo || 'No especificado'}\n` +
-      `Conductor: ${conductorAsignado || userData.nombre_completo}\n` +
-      `Total: $${total.toLocaleString()}`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Confirmar', 
-          onPress: crearReserva
-        }
-      ]
-    );
+    // Formatear fecha para mostrar
+    const fechaFormateada = formatearFechaModal(selectedDate);
+
+    // Mostrar modal de confirmación personalizado
+    setConfirmModalData({
+      empresa: empresaSeleccionada?.nombre_empresa,
+      servicios: serviciosSeleccionados,
+      fecha: fechaFormateada,
+      hora: selectedTime,
+      placa: placaVehiculo || 'No especificado',
+      tipoVehiculo: tipoVehiculo || 'No especificado',
+      conductor: conductorAsignado || userData.nombre_completo,
+      total: total
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Formatear fecha para el modal
+  const formatearFechaModal = (fechaStr: string) => {
+    const fecha = new Date(fechaStr + 'T12:00:00');
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${diasSemana[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]}`;
+  };
+
+  // Procesar la reserva después de confirmar en el modal
+  const procesarReserva = () => {
+    setShowConfirmModal(false);
+    crearReserva();
   };
 
   const crearReserva = async () => {
@@ -406,8 +434,13 @@ export default function BookAppointment() {
       console.log('Token obtenido:', token ? 'Existe' : 'No existe');
       
       if (!token) {
-        Alert.alert('Error', 'No se encontró token de autenticación. Por favor, inicia sesión nuevamente.');
-        router.push('./login');
+        setSuccessModalData({
+          title: 'Error de autenticación',
+          message: 'No se encontró token de autenticación. Por favor, inicia sesión nuevamente.',
+          isSuccess: false
+        });
+        setShowSuccessModal(true);
+        setTimeout(() => router.push('./login'), 2000);
         return;
       }
 
@@ -448,35 +481,39 @@ export default function BookAppointment() {
 
       // Verificar si el error es de autenticación
       if (response.status === 401 || response.status === 403) {
-        Alert.alert(
-          'Sesión expirada', 
-          'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
-          [{ text: 'OK', onPress: () => router.push('./login') }]
-        );
+        setSuccessModalData({
+          title: 'Sesión expirada',
+          message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+          isSuccess: false
+        });
+        setShowSuccessModal(true);
+        setTimeout(() => router.push('./login'), 2000);
         return;
       }
 
       if (data.success) {
-        Alert.alert(
-          '¡Éxito!', 
-          'Tu reserva ha sido creada exitosamente',
-          [
-            {
-              text: 'Ver mis reservas',
-              onPress: () => router.push('./my-appointments')
-            },
-            {
-              text: 'OK',
-              onPress: () => router.back()
-            }
-          ]
-        );
+        setSuccessModalData({
+          title: '¡Reserva Confirmada!',
+          message: 'Tu reserva ha sido creada exitosamente. Te esperamos en la fecha y hora seleccionada.',
+          isSuccess: true
+        });
+        setShowSuccessModal(true);
       } else {
-        Alert.alert('Error', data.message || 'No se pudo crear la reserva');
+        setSuccessModalData({
+          title: 'Error',
+          message: data.message || 'No se pudo crear la reserva. Intenta nuevamente.',
+          isSuccess: false
+        });
+        setShowSuccessModal(true);
       }
     } catch (error) {
       console.error('Error al crear reserva:', error);
-      Alert.alert('Error', 'Ocurrió un error al crear la reserva. Verifica tu conexión.');
+      setSuccessModalData({
+        title: 'Error de conexión',
+        message: 'Ocurrió un error al crear la reserva. Verifica tu conexión a internet.',
+        isSuccess: false
+      });
+      setShowSuccessModal(true);
     } finally {
       setLoading(false);
     }
@@ -521,11 +558,63 @@ export default function BookAppointment() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Reservar Cita</Text>
-        <Text style={styles.subtitle}>Paso a paso para tu reserva</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <View style={styles.backButtonIcon}>
+              <Ionicons name="chevron-back" size={20} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.title}>Reservar Cita</Text>
+            <Text style={styles.subtitle}>Paso a paso</Text>
+          </View>
+          
+          <View style={styles.headerSteps}>
+            <View style={[styles.headerStepDot, selectedService.length > 0 && styles.headerStepDotActive]} />
+            <View style={[styles.headerStepDot, selectedEmpresa !== null && styles.headerStepDotActive]} />
+            <View style={[styles.headerStepDot, selectedDate && styles.headerStepDotActive]} />
+            <View style={[styles.headerStepDot, selectedTime && styles.headerStepDotActive]} />
+          </View>
+        </View>
+        
+        {/* Resumen de selección en header */}
+        {(selectedService.length > 0 || selectedEmpresa || selectedDate) && (
+          <View style={styles.headerSummary}>
+            {selectedService.length > 0 && (
+              <View style={styles.headerSummaryItem}>
+                <Ionicons name="cut" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.headerSummaryText}>{selectedService.length} servicio(s)</Text>
+              </View>
+            )}
+            {selectedEmpresa && (
+              <View style={styles.headerSummaryItem}>
+                <Ionicons name="business" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.headerSummaryText} numberOfLines={1}>
+                  {empresas.find(e => e.id_empresa === selectedEmpresa)?.nombre_empresa?.substring(0, 15) || 'Empresa'}
+                </Text>
+              </View>
+            )}
+            {selectedDate && (
+              <View style={styles.headerSummaryItem}>
+                <Ionicons name="calendar" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.headerSummaryText}>
+                  {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                </Text>
+              </View>
+            )}
+            {selectedTime && (
+              <View style={styles.headerSummaryItem}>
+                <Ionicons name="time" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.headerSummaryText}>{selectedTime}</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -586,105 +675,150 @@ export default function BookAppointment() {
           {/* Aviso de usar filtros */}
           {!filtroTipoVehiculo && !filtroTipoServicio && (
             <View style={styles.filterNotice}>
-              <Ionicons name="search-outline" size={24} color="#1976D2" style={styles.filterNoticeIcon} />
-              <Text style={styles.filterNoticeTitle}>¡Usa los filtros para encontrar servicios!</Text>
+              <View style={styles.filterNoticeIconBg}>
+                <Ionicons name="search" size={28} color="#0C553C" />
+              </View>
+              <Text style={styles.filterNoticeTitle}>¡Encuentra el servicio perfecto!</Text>
               <Text style={styles.filterNoticeText}>
-                Selecciona una categoría de servicio y/o tipo de vehículo para ver los servicios disponibles.
+                Usa los filtros para ver los servicios según tu necesidad
               </Text>
             </View>
           )}
 
           {/* Filtros */}
           <View style={styles.filtersContainer}>
-            <Text style={styles.filterSectionTitle}>Filtrar por:</Text>
+            <View style={styles.filterHeaderRow}>
+              <View style={styles.filterTitleContainer}>
+                <Ionicons name="options" size={20} color="#0C553C" />
+                <Text style={styles.filterSectionTitle}>Filtros</Text>
+              </View>
+              {(filtroTipoVehiculo || filtroTipoServicio) && (
+                <TouchableOpacity 
+                  style={styles.clearFiltersBtn} 
+                  onPress={limpiarFiltros}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="refresh" size={16} color="#EF4444" />
+                  <Text style={styles.clearFiltersBtnText}>Limpiar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             
             {/* Filtro por categoría de servicio */}
             <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}><Ionicons name="construct-outline" size={16} color="#666" /> Categoría de Servicio:</Text>
+              <View style={styles.filterLabelRow}>
+                <View style={styles.filterLabelIconBg}>
+                  <Ionicons name="construct" size={14} color="#0C553C" />
+                </View>
+                <Text style={styles.filterLabel}>Categoría</Text>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
                 <View style={styles.filterOptionsRow}>
-                  {categoriasServicio.map((tipo) => (
-                    <TouchableOpacity
-                      key={tipo}
-                      style={[
-                        styles.filterChip,
-                        filtroTipoServicio === tipo && styles.filterChipSelected
-                      ]}
-                      onPress={() => {
-                        setFiltroTipoServicio(filtroTipoServicio === tipo ? '' : tipo);
-                      }}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        filtroTipoServicio === tipo && styles.filterChipTextSelected
-                      ]}>
-                        {tipo}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {categoriasServicio.map((tipo) => {
+                    const isSelected = filtroTipoServicio === tipo;
+                    return (
+                      <TouchableOpacity
+                        key={tipo}
+                        style={[
+                          styles.filterChip,
+                          isSelected && styles.filterChipSelected
+                        ]}
+                        onPress={() => {
+                          setFiltroTipoServicio(isSelected ? '' : tipo);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={16} color="#fff" style={styles.filterChipIcon} />
+                        )}
+                        <Text style={[
+                          styles.filterChipText,
+                          isSelected && styles.filterChipTextSelected
+                        ]}>
+                          {tipo}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>
 
             {/* Filtro por tipo de vehículo */}
             <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}><Ionicons name="car-outline" size={16} color="#666" /> Tipo de Vehículo:</Text>
+              <View style={styles.filterLabelRow}>
+                <View style={styles.filterLabelIconBg}>
+                  <Ionicons name="car-sport" size={14} color="#0C553C" />
+                </View>
+                <Text style={styles.filterLabel}>Tipo de Vehículo</Text>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
                 <View style={styles.filterOptionsRow}>
-                  {tiposVehiculoFiltro.map((tipo) => (
-                    <TouchableOpacity
-                      key={tipo}
-                      style={[
-                        styles.filterChip,
-                        filtroTipoVehiculo === tipo && styles.filterChipSelected
-                      ]}
-                      onPress={() => {
-                        setFiltroTipoVehiculo(filtroTipoVehiculo === tipo ? '' : tipo);
-                      }}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        filtroTipoVehiculo === tipo && styles.filterChipTextSelected
-                      ]}>
-                        {tipo}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {tiposVehiculoFiltro.map((tipo) => {
+                    const isSelected = filtroTipoVehiculo === tipo;
+                    return (
+                      <TouchableOpacity
+                        key={tipo}
+                        style={[
+                          styles.filterChip,
+                          isSelected && styles.filterChipSelected
+                        ]}
+                        onPress={() => {
+                          setFiltroTipoVehiculo(isSelected ? '' : tipo);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={16} color="#fff" style={styles.filterChipIcon} />
+                        )}
+                        <Text style={[
+                          styles.filterChipText,
+                          isSelected && styles.filterChipTextSelected
+                        ]}>
+                          {tipo}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>
 
-            {/* Botón de limpiar filtros */}
+            {/* Resultados y filtros activos */}
             {(filtroTipoVehiculo || filtroTipoServicio) && (
-              <View style={styles.filterButtonsContainer}>
-                <View style={styles.resultCountContainer}>
-                  <Text style={styles.resultCountText}>
-                    {serviciosFiltrados.length} servicio(s) encontrado(s)
+              <View style={styles.filterResultsContainer}>
+                <View style={styles.filterResultsBadge}>
+                  <Ionicons name="flash" size={16} color="#0C553C" />
+                  <Text style={styles.filterResultsText}>
+                    {serviciosFiltrados.length} {serviciosFiltrados.length === 1 ? 'servicio encontrado' : 'servicios encontrados'}
                   </Text>
                 </View>
-                <TouchableOpacity 
-                  style={styles.limpiarFiltrosButton} 
-                  onPress={limpiarFiltros}
-                >
-                  <Text style={styles.limpiarFiltrosText}><Ionicons name="close" size={14} color="#fff" /> Limpiar filtros</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Filtros activos */}
-            {(filtroTipoVehiculo || filtroTipoServicio) && (
-              <View style={styles.filtrosActivosContainer}>
-                <Text style={styles.filtrosActivosTitle}>Filtros activos:</Text>
-                <View style={styles.filtrosActivosTags}>
+                <View style={styles.activeFiltersRow}>
                   {filtroTipoServicio && (
-                    <View style={styles.filtroActivoTag}>
-                      <Text style={styles.filtroActivoTagText}><Ionicons name="construct-outline" size={12} color="#1976D2" /> {filtroTipoServicio}</Text>
-                    </View>
+                    <TouchableOpacity 
+                      style={styles.activeFilterTag}
+                      onPress={() => setFiltroTipoServicio('')}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="construct" size={12} color="#0C553C" />
+                      <Text style={styles.activeFilterTagText}>{filtroTipoServicio}</Text>
+                      <View style={styles.activeFilterTagClose}>
+                        <Ionicons name="close" size={12} color="#fff" />
+                      </View>
+                    </TouchableOpacity>
                   )}
                   {filtroTipoVehiculo && (
-                    <View style={styles.filtroActivoTag}>
-                      <Text style={styles.filtroActivoTagText}><Ionicons name="car-outline" size={12} color="#1976D2" /> {filtroTipoVehiculo}</Text>
-                    </View>
+                    <TouchableOpacity 
+                      style={styles.activeFilterTag}
+                      onPress={() => setFiltroTipoVehiculo('')}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="car-sport" size={12} color="#0C553C" />
+                      <Text style={styles.activeFilterTagText}>{filtroTipoVehiculo}</Text>
+                      <View style={styles.activeFilterTagClose}>
+                        <Ionicons name="close" size={12} color="#fff" />
+                      </View>
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -1176,6 +1310,219 @@ export default function BookAppointment() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* ============================================ */}
+      {/* MODAL DE CONFIRMACIÓN DE RESERVA */}
+      {/* ============================================ */}
+      <Modal
+        visible={showConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            {/* Header del modal */}
+            <View style={styles.confirmModalHeader}>
+              <View style={styles.confirmModalIconContainer}>
+                <Ionicons name="clipboard-outline" size={32} color="#fff" />
+              </View>
+              <Text style={styles.confirmModalTitle}>Confirmar Reserva</Text>
+              <Text style={styles.confirmModalSubtitle}>Revisa los detalles antes de confirmar</Text>
+            </View>
+
+            {/* Contenido del modal */}
+            <ScrollView style={styles.confirmModalContent} showsVerticalScrollIndicator={false}>
+              {confirmModalData && (
+                <>
+                  {/* Empresa */}
+                  <View style={styles.confirmDetailRow}>
+                    <View style={styles.confirmDetailIconBg}>
+                      <Ionicons name="business" size={18} color="#0C553C" />
+                    </View>
+                    <View style={styles.confirmDetailTextContainer}>
+                      <Text style={styles.confirmDetailLabel}>Empresa</Text>
+                      <Text style={styles.confirmDetailValue}>{confirmModalData.empresa}</Text>
+                    </View>
+                  </View>
+
+                  {/* Servicios */}
+                  <View style={styles.confirmDetailRow}>
+                    <View style={styles.confirmDetailIconBg}>
+                      <Ionicons name="construct" size={18} color="#0C553C" />
+                    </View>
+                    <View style={styles.confirmDetailTextContainer}>
+                      <Text style={styles.confirmDetailLabel}>Servicios ({confirmModalData.servicios?.length})</Text>
+                      <View style={styles.confirmServicesContainer}>
+                        {confirmModalData.servicios?.map((s: any, idx: number) => (
+                          <View key={idx} style={styles.confirmServiceChip}>
+                            <Ionicons name="checkmark-circle" size={12} color="#0C553C" />
+                            <Text style={styles.confirmServiceChipText}>{s.nombre_servicio}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Fecha y Hora */}
+                  <View style={styles.confirmDateTimeRow}>
+                    <View style={styles.confirmDateBox}>
+                      <Ionicons name="calendar" size={20} color="#0C553C" />
+                      <Text style={styles.confirmDateLabel}>Fecha</Text>
+                      <Text style={styles.confirmDateValue}>{confirmModalData.fecha}</Text>
+                    </View>
+                    <View style={styles.confirmTimeBox}>
+                      <Ionicons name="time" size={20} color="#0C553C" />
+                      <Text style={styles.confirmTimeLabel}>Hora</Text>
+                      <Text style={styles.confirmTimeValue}>{confirmModalData.hora}</Text>
+                    </View>
+                  </View>
+
+                  {/* Vehículo */}
+                  <View style={styles.confirmDetailRow}>
+                    <View style={styles.confirmDetailIconBg}>
+                      <Ionicons name="car-sport" size={18} color="#0C553C" />
+                    </View>
+                    <View style={styles.confirmDetailTextContainer}>
+                      <Text style={styles.confirmDetailLabel}>Vehículo</Text>
+                      <Text style={styles.confirmDetailValue}>
+                        {confirmModalData.placa} • {confirmModalData.tipoVehiculo}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Conductor */}
+                  <View style={styles.confirmDetailRow}>
+                    <View style={styles.confirmDetailIconBg}>
+                      <Ionicons name="person" size={18} color="#0C553C" />
+                    </View>
+                    <View style={styles.confirmDetailTextContainer}>
+                      <Text style={styles.confirmDetailLabel}>Conductor</Text>
+                      <Text style={styles.confirmDetailValue}>{confirmModalData.conductor}</Text>
+                    </View>
+                  </View>
+
+                  {/* Total */}
+                  <View style={styles.confirmTotalContainer}>
+                    <View style={styles.confirmTotalRow}>
+                      <Text style={styles.confirmTotalLabel}>Total a pagar</Text>
+                      <Text style={styles.confirmTotalValue}>
+                        ${confirmModalData.total?.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+
+            {/* Botones del modal */}
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity 
+                style={styles.confirmCancelBtn}
+                onPress={() => setShowConfirmModal(false)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close" size={20} color="#666" />
+                <Text style={styles.confirmCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.confirmConfirmBtn}
+                onPress={procesarReserva}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Text style={styles.confirmConfirmBtnText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ============================================ */}
+      {/* MODAL DE ÉXITO/ERROR */}
+      {/* ============================================ */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successModal}>
+            {/* Icono animado */}
+            <View style={[
+              styles.successIconContainer,
+              !successModalData.isSuccess && styles.errorIconContainer
+            ]}>
+              <View style={[
+                styles.successIconCircle,
+                !successModalData.isSuccess && styles.errorIconCircle
+              ]}>
+                <Ionicons 
+                  name={successModalData.isSuccess ? "checkmark" : "close"} 
+                  size={48} 
+                  color="#fff" 
+                />
+              </View>
+              {successModalData.isSuccess && (
+                <>
+                  <View style={[styles.confettiDot, styles.confetti1]} />
+                  <View style={[styles.confettiDot, styles.confetti2]} />
+                  <View style={[styles.confettiDot, styles.confetti3]} />
+                  <View style={[styles.confettiDot, styles.confetti4]} />
+                </>
+              )}
+            </View>
+
+            {/* Título y mensaje */}
+            <Text style={[
+              styles.successTitle,
+              !successModalData.isSuccess && styles.errorTitle
+            ]}>
+              {successModalData.title}
+            </Text>
+            <Text style={styles.successMessage}>
+              {successModalData.message}
+            </Text>
+
+            {/* Botones según el resultado */}
+            {successModalData.isSuccess ? (
+              <View style={styles.successButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.successSecondaryBtn}
+                  onPress={() => {
+                    setShowSuccessModal(false);
+                    router.back();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="home-outline" size={18} color="#0C553C" />
+                  <Text style={styles.successSecondaryBtnText}>Ir al inicio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.successPrimaryBtn}
+                  onPress={() => {
+                    setShowSuccessModal(false);
+                    router.push('./my-appointments');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="calendar" size={18} color="#fff" />
+                  <Text style={styles.successPrimaryBtnText}>Ver reservas</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.errorCloseBtn}
+                onPress={() => setShowSuccessModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.errorCloseBtnText}>Entendido</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1185,33 +1532,101 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  // ============================================
+  // HEADER MEJORADO
+  // ============================================
   header: {
     backgroundColor: '#0C553C',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   backButton: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 10,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  headerSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: 40,
+    justifyContent: 'flex-end',
+  },
+  headerStepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  headerStepDotActive: {
+    backgroundColor: '#4ADE80',
+  },
+  headerSummary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  headerSummaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    gap: 5,
+  },
+  headerSummaryText: {
     color: '#fff',
-    textAlign: 'center',
-    marginTop: 5,
-    opacity: 0.9,
+    fontSize: 12,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1241,20 +1656,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
   },
+  // ============================================
+  // SERVICIOS MEJORADOS
+  // ============================================
   servicesContainer: {
     marginBottom: 10,
   },
   serviceOption: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 16,
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#E5E7EB',
   },
   selectedOption: {
     backgroundColor: '#0C553C',
     borderColor: '#0C553C',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   serviceHeader: {
     flexDirection: 'row',
@@ -1303,17 +1726,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     opacity: 0.9,
   },
+  // ============================================
+  // TOTAL MEJORADO
+  // ============================================
   totalContainer: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 14,
+    padding: 16,
     marginVertical: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0C553C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#86EFAC',
   },
   totalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#0C553C',
     textAlign: 'center',
   },
@@ -1501,46 +1930,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 20,
   },
+  // ============================================
+  // BOTÓN CONFIRMAR MEJORADO
+  // ============================================
   bookButton: {
     backgroundColor: '#0C553C',
-    borderRadius: 12,
-    paddingVertical: 15,
-    marginTop: 20,
+    borderRadius: 16,
+    paddingVertical: 18,
+    marginTop: 10,
     marginBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   bookButtonDisabled: {
-    backgroundColor: '#999',
+    backgroundColor: '#9CA3AF',
+    shadowOpacity: 0,
   },
   bookButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
+  // ============================================
+  // PASOS Y SECCIONES MEJORADOS
+  // ============================================
   stepContainer: {
     marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#666',
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   stepNumberActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#0C553C',
   },
   stepNumberText: {
-    color: '#ccc',
+    color: '#9CA3AF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   stepNumberTextActive: {
     color: '#fff',
@@ -1551,84 +2007,193 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
   },
-  // Estilos para filtros
+  // ============================================
+  // FILTROS MEJORADOS
+  // ============================================
   filterNotice: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 15,
+    marginBottom: 16,
     alignItems: 'center',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  filterNoticeIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   filterNoticeIcon: {
     fontSize: 32,
     marginBottom: 10,
   },
   filterNoticeTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E65100',
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#166534',
+    marginBottom: 6,
     textAlign: 'center',
   },
   filterNoticeText: {
     fontSize: 14,
-    color: '#666',
+    color: '#15803D',
     textAlign: 'center',
     lineHeight: 20,
   },
   filtersContainer: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#E5E7EB',
+  },
+  filterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  filterTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  clearFiltersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  clearFiltersBtnText: {
+    fontSize: 13,
+    color: '#EF4444',
+    fontWeight: '600',
   },
   filterGroup: {
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  filterLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  filterLabelIconBg: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#555',
-    marginBottom: 10,
+    color: '#374151',
   },
   filterScrollView: {
-    marginBottom: 5,
+    marginBottom: 0,
   },
   filterOptionsRow: {
     flexDirection: 'row',
-    paddingRight: 15,
+    paddingRight: 16,
+    gap: 8,
   },
   filterChip: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 24,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    marginRight: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#E5E7EB',
   },
   filterChipSelected: {
     backgroundColor: '#0C553C',
     borderColor: '#0C553C',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterChipIcon: {
+    marginRight: 4,
   },
   filterChipText: {
-    fontSize: 13,
-    color: '#333',
+    fontSize: 14,
+    color: '#4B5563',
     fontWeight: '500',
   },
   filterChipTextSelected: {
     color: '#fff',
+    fontWeight: '600',
   },
+  filterResultsContainer: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+  },
+  filterResultsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  filterResultsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0C553C',
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  activeFilterTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingLeft: 10,
+    paddingRight: 4,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  activeFilterTagText: {
+    fontSize: 12,
+    color: '#0C553C',
+    fontWeight: '600',
+  },
+  activeFilterTagClose: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Estilos antiguos mantenidos para compatibilidad
   filterButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1645,13 +2210,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   limpiarFiltrosButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#EF4444',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 15,
   },
   limpiarFiltrosText: {
-    color: '#666',
+    color: '#fff',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -2080,5 +2645,359 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+  },
+
+  // ============================================
+  // ESTILOS MODAL CONFIRMACIÓN
+  // ============================================
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmModal: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    width: '100%',
+    maxHeight: '85%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  confirmModalHeader: {
+    backgroundColor: '#0C553C',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  confirmModalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  confirmModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  confirmModalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  confirmModalContent: {
+    padding: 20,
+    maxHeight: 320,
+  },
+  confirmDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  confirmDetailIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  confirmDetailTextContainer: {
+    flex: 1,
+  },
+  confirmDetailLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  confirmDetailValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  confirmServicesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  confirmServiceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  confirmServiceChipText: {
+    fontSize: 12,
+    color: '#0C553C',
+    fontWeight: '500',
+  },
+  confirmDateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  confirmDateBox: {
+    flex: 1,
+    backgroundColor: '#F0FDF4',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  confirmDateLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+    textTransform: 'uppercase',
+  },
+  confirmDateValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0C553C',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  confirmTimeBox: {
+    flex: 0.6,
+    backgroundColor: '#F0FDF4',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  confirmTimeLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+    textTransform: 'uppercase',
+  },
+  confirmTimeValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0C553C',
+    marginTop: 2,
+  },
+  confirmTotalContainer: {
+    marginTop: 16,
+    backgroundColor: '#0C553C',
+    borderRadius: 14,
+    padding: 16,
+  },
+  confirmTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  confirmTotalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  confirmTotalValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  confirmModalButtons: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+  },
+  confirmCancelBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  confirmConfirmBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0C553C',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  confirmConfirmBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ============================================
+  // ESTILOS MODAL ÉXITO/ERROR
+  // ============================================
+  successModal: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    width: '100%',
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  successIconContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  errorIconContainer: {},
+  successIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#0C553C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  errorIconCircle: {
+    backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
+  },
+  confettiDot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  confetti1: {
+    backgroundColor: '#FFD700',
+    top: -5,
+    left: 10,
+  },
+  confetti2: {
+    backgroundColor: '#22C55E',
+    top: 0,
+    right: -5,
+  },
+  confetti3: {
+    backgroundColor: '#3B82F6',
+    bottom: 10,
+    left: -8,
+  },
+  confetti4: {
+    backgroundColor: '#EC4899',
+    bottom: 0,
+    right: 5,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0C553C',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  errorTitle: {
+    color: '#EF4444',
+  },
+  successMessage: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  successButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  successSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  successSecondaryBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0C553C',
+  },
+  successPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0C553C',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  successPrimaryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  errorCloseBtn: {
+    width: '100%',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  errorCloseBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
   },
 });

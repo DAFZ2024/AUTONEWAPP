@@ -403,6 +403,131 @@ export const cancelarReserva = async (reservaId: number, usuarioId: number): Pro
     });
 };
 
+/**
+ * Reagendar una reserva existente
+ */
+export const reagendarReserva = async (
+    reservaId: number, 
+    nuevaFecha: string, 
+    nuevaHora: string, 
+    usuarioId: number
+): Promise<ApiResponse<{ reserva: any }>> => {
+    return fetchApi(`/reservas/reagendar/${reservaId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+            nueva_fecha: nuevaFecha, 
+            nueva_hora: nuevaHora,
+            usuario_id: usuarioId 
+        }),
+    });
+};
+
+// ==================== PLANES Y SUSCRIPCIONES ====================
+
+export interface Plan {
+    id_plan: number;
+    nombre: string;
+    tipo: string;
+    descripcion: string;
+    precio_mensual: number;
+    cantidad_servicios_mes: number;
+    activo: boolean;
+    incluye_lavado_asientos: boolean;
+    incluye_aspirado: boolean;
+    incluye_lavado_exterior: boolean;
+    incluye_lavado_interior_humedo: boolean;
+    incluye_encerado: boolean;
+    incluye_detallado_completo: boolean;
+    fecha_creacion: string;
+    servicios_incluidos?: ServicioIncluido[];
+}
+
+export interface ServicioIncluido {
+    id_servicio: number;
+    nombre_servicio: string;
+    descripcion: string;
+    precio: number;
+    porcentaje_descuento: number;
+}
+
+export interface Suscripcion {
+    id_suscripcion: number;
+    fecha_inicio: string;
+    fecha_fin: string;
+    estado: 'activa' | 'pausada' | 'cancelada' | 'vencida';
+    servicios_utilizados_mes: number;
+    ultimo_reinicio_contador: string;
+    auto_renovar: boolean;
+    id_plan: number;
+    plan_nombre: string;
+    plan_tipo: string;
+    plan_descripcion: string;
+    precio_mensual: number;
+    cantidad_servicios_mes: number;
+    incluye_lavado_asientos: boolean;
+    incluye_aspirado: boolean;
+    incluye_lavado_exterior: boolean;
+    incluye_lavado_interior_humedo: boolean;
+    incluye_encerado: boolean;
+    incluye_detallado_completo: boolean;
+    servicios_incluidos?: ServicioIncluido[];
+    dias_restantes?: number;
+    servicios_restantes?: number | string;
+}
+
+/**
+ * Obtener todos los planes disponibles
+ */
+export const getPlanesDisponibles = async (): Promise<ApiResponse<Plan[]>> => {
+    return fetchApi<Plan[]>('/planes/disponibles');
+};
+
+/**
+ * Obtener detalle de un plan específico
+ */
+export const getPlanDetalle = async (planId: number): Promise<ApiResponse<Plan>> => {
+    return fetchApi<Plan>(`/planes/${planId}`);
+};
+
+/**
+ * Obtener la suscripción activa del usuario
+ */
+export const getMiSuscripcion = async (): Promise<ApiResponse<Suscripcion | null>> => {
+    return fetchApi<Suscripcion | null>('/planes/mi-suscripcion/activa');
+};
+
+/**
+ * Obtener historial de suscripciones del usuario
+ */
+export const getHistorialSuscripciones = async (): Promise<ApiResponse<Suscripcion[]>> => {
+    return fetchApi<Suscripcion[]>('/planes/mi-suscripcion/historial');
+};
+
+/**
+ * Suscribirse a un plan
+ */
+export interface SuscribirseData {
+    plan_id: number;
+    metodo_pago?: string;
+    referencia_pago?: string;
+}
+
+export const suscribirseAPlan = async (data: SuscribirseData): Promise<ApiResponse<any>> => {
+    return fetchApi('/planes/suscribirse', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+};
+
+/**
+ * Cancelar suscripción activa
+ */
+export const cancelarSuscripcion = async (suscripcionId: number): Promise<ApiResponse> => {
+    return fetchApi(`/planes/cancelar/${suscripcionId}`, {
+        method: 'PUT',
+    });
+};
+
 // ==================== EMPRESA ====================
 
 export interface Empresa {
@@ -823,6 +948,10 @@ export const cambiarContrasenaEmpresa = async (data: CambiarContrasenaData): Pro
 export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiResponse<{ profile_image: string }>> => {
     const token = await AsyncStorage.getItem('token');
     
+    console.log('[FOTO EMPRESA] Actualizando foto de perfil...');
+    console.log('[FOTO EMPRESA] URL API:', `${API_URL}/empresa/perfil/foto`);
+    console.log('[FOTO EMPRESA] Token presente:', !!token);
+    
     const formData = new FormData();
     
     // Obtener el nombre del archivo y el tipo
@@ -837,7 +966,7 @@ export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiRespons
     } as any);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/empresa/perfil/foto`, {
+        const response = await fetch(`${API_URL}/empresa/perfil/foto`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -845,10 +974,12 @@ export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiRespons
             body: formData,
         });
 
+        console.log('[FOTO EMPRESA] Response status:', response.status);
         const data = await response.json();
+        console.log('[FOTO EMPRESA] Response data:', JSON.stringify(data));
         return data;
     } catch (error) {
-        console.error('Error al actualizar foto de perfil:', error);
+        console.error('[FOTO EMPRESA] Error al actualizar foto de perfil:', error);
         return {
             success: false,
             message: 'Error de conexión al actualizar foto',
@@ -860,6 +991,8 @@ export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiRespons
  * Eliminar foto de perfil de la empresa
  */
 export const eliminarFotoPerfil = async (): Promise<ApiResponse<any>> => {
+    console.log('[FOTO EMPRESA] Eliminando foto de perfil...');
+    console.log('[FOTO EMPRESA] URL API:', `${API_URL}/empresa/perfil/foto`);
     return fetchApi('/empresa/perfil/foto', {
         method: 'DELETE',
     });
@@ -872,6 +1005,10 @@ export const eliminarFotoPerfil = async (): Promise<ApiResponse<any>> => {
  */
 export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<ApiResponse<{ profile_picture: string }>> => {
     const token = await AsyncStorage.getItem('token');
+    
+    console.log('[FOTO] Actualizando foto de perfil...');
+    console.log('[FOTO] URL API:', `${API_URL}/auth/profile/foto`);
+    console.log('[FOTO] Token presente:', !!token);
     
     const formData = new FormData();
     
@@ -887,7 +1024,7 @@ export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<Api
     } as any);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/profile/foto`, {
+        const response = await fetch(`${API_URL}/auth/profile/foto`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -895,10 +1032,12 @@ export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<Api
             body: formData,
         });
 
+        console.log('[FOTO] Response status:', response.status);
         const data = await response.json();
+        console.log('[FOTO] Response data:', JSON.stringify(data));
         return data;
     } catch (error) {
-        console.error('Error al actualizar foto de perfil:', error);
+        console.error('[FOTO] Error al actualizar foto de perfil:', error);
         return {
             success: false,
             message: 'Error de conexión al actualizar foto',
@@ -912,8 +1051,12 @@ export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<Api
 export const eliminarFotoPerfilUsuario = async (): Promise<ApiResponse<any>> => {
     const token = await AsyncStorage.getItem('token');
     
+    console.log('[FOTO] Eliminando foto de perfil...');
+    console.log('[FOTO] URL API:', `${API_URL}/auth/profile/foto`);
+    console.log('[FOTO] Token presente:', !!token);
+    
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/profile/foto`, {
+        const response = await fetch(`${API_URL}/auth/profile/foto`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -921,10 +1064,12 @@ export const eliminarFotoPerfilUsuario = async (): Promise<ApiResponse<any>> => 
             },
         });
 
+        console.log('[FOTO] Response status:', response.status);
         const data = await response.json();
+        console.log('[FOTO] Response data:', JSON.stringify(data));
         return data;
     } catch (error) {
-        console.error('Error al eliminar foto de perfil:', error);
+        console.error('[FOTO] Error al eliminar foto de perfil:', error);
         return {
             success: false,
             message: 'Error de conexión al eliminar foto',
@@ -1051,6 +1196,14 @@ export default {
     getHorariosDisponibles,
     crearReserva,
     cancelarReserva,
+    reagendarReserva,
+    // Funciones de planes y suscripciones
+    getPlanesDisponibles,
+    getPlanDetalle,
+    getMiSuscripcion,
+    getHistorialSuscripciones,
+    suscribirseAPlan,
+    cancelarSuscripcion,
     // Funciones de empresa
     loginEmpresa,
     logoutEmpresa,

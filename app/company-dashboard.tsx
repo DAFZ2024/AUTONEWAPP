@@ -1,8 +1,9 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getDashboardStats, logoutEmpresa, getEmpresa, DashboardStats, Empresa } from '@/services/api';
 
 export default function CompanyDashboard() {
@@ -83,31 +84,108 @@ export default function CompanyDashboard() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          {empresa?.profile_image ? (
-            <Image
-              source={{ uri: empresa.profile_image }}
-              style={styles.profileImage}
-              contentFit="cover"
-            />
-          ) : (
-            <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="business" size={30} color="#fff" />
+      {/* Header Premium con Gradiente */}
+      <LinearGradient
+        colors={['#0C553C', '#0A4832', '#073D28']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        {/* Decoración de fondo */}
+        <View style={styles.headerDecoration}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.decorCircle3} />
+        </View>
+
+        {/* Contenido del Header */}
+        <View style={styles.headerContent}>
+          {/* Fila superior: Logo y botón salir */}
+          <View style={styles.headerTopRow}>
+            <View style={styles.brandContainer}>
+              <View style={styles.logoContainer}>
+                <Ionicons name="car-sport" size={18} color="#0C553C" />
+              </View>
+              <Text style={styles.brandText}>AutoNew</Text>
+              <View style={styles.proBadge}>
+                <Ionicons name="shield-checkmark" size={10} color="#FFD700" />
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
             </View>
-          )}
-          <View style={styles.headerInfo}>
-            <Text style={styles.welcome}>
-              {empresa?.nombre_empresa || 'Mi Empresa'}
-            </Text>
-            <Text style={styles.headerSubtitle}>Panel de Administración</Text>
+            
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={18} color="#FF6B6B" />
+              <Text style={styles.logoutText}>Salir</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Perfil de la Empresa */}
+          <View style={styles.profileSection}>
+            <View style={styles.profileImageWrapper}>
+              {empresa?.profile_image ? (
+                <Image
+                  source={{ uri: empresa.profile_image }}
+                  style={styles.profileImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <Ionicons name="business" size={32} color="#0C553C" />
+                </View>
+              )}
+              <View style={styles.onlineIndicator} />
+            </View>
+            
+            <View style={styles.profileInfo}>
+              <Text style={styles.greeting}>¡Bienvenido de vuelta!</Text>
+              <Text style={styles.companyName}>
+                {empresa?.nombre_empresa || 'Mi Empresa'}
+              </Text>
+              <View style={styles.roleBadge}>
+                <Ionicons name="briefcase" size={12} color="#10B981" />
+                <Text style={styles.roleText}>Panel de Administración</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Estadísticas Rápidas en Header */}
+          <View style={styles.quickStatsRow}>
+            <View style={styles.quickStatItem}>
+              <View style={[styles.quickStatIcon, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                <Ionicons name="calendar" size={16} color="#3B82F6" />
+              </View>
+              <View>
+                <Text style={styles.quickStatValue}>{stats.citasHoy}</Text>
+                <Text style={styles.quickStatLabel}>Citas hoy</Text>
+              </View>
+            </View>
+            
+            <View style={styles.quickStatDivider} />
+            
+            <View style={styles.quickStatItem}>
+              <View style={[styles.quickStatIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <Ionicons name="cash" size={16} color="#10B981" />
+              </View>
+              <View>
+                <Text style={styles.quickStatValue}>{formatCurrency(stats.ingresosHoy)}</Text>
+                <Text style={styles.quickStatLabel}>Ingresos hoy</Text>
+              </View>
+            </View>
+            
+            <View style={styles.quickStatDivider} />
+            
+            <View style={styles.quickStatItem}>
+              <View style={[styles.quickStatIcon, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
+                <Ionicons name="star" size={16} color="#F59E0B" />
+              </View>
+              <View>
+                <Text style={styles.quickStatValue}>{stats.satisfaccion}%</Text>
+                <Text style={styles.quickStatLabel}>Satisfacción</Text>
+              </View>
+            </View>
           </View>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color="#fff" />
-          <Text style={styles.logoutText}>Salir</Text>
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         style={styles.content}
@@ -125,47 +203,68 @@ export default function CompanyDashboard() {
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>Panel de Control</Text>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.citasHoy}</Text>
-            <Text style={styles.statLabel}>Citas Hoy</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{formatCurrency(stats.ingresosHoy)}</Text>
-            <Text style={styles.statLabel}>Ingresos Hoy</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.clientesActivos}</Text>
-            <Text style={styles.statLabel}>Clientes Activos</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.satisfaccion}%</Text>
-            <Text style={styles.statLabel}>Satisfacción</Text>
-          </View>
-        </View>
-
-        {/* Estadísticas del mes */}
-        <View style={styles.monthlyStatsContainer}>
-          <View style={styles.monthlyTitleRow}>
-            <Ionicons name="calendar-outline" size={20} color="#0C553C" />
-            <Text style={styles.monthlyTitle}>Resumen del Mes</Text>
-          </View>
-          <View style={styles.monthlyRow}>
-            <View style={styles.monthlyItem}>
-              <Text style={styles.monthlyNumber}>{stats.reservasMes}</Text>
-              <Text style={styles.monthlyLabel}>Reservas</Text>
+        {/* Panel de Control Compacto */}
+        <View style={styles.panelControlContainer}>
+          <View style={styles.panelHeader}>
+            <View style={styles.panelTitleRow}>
+              <View style={styles.panelIconBadge}>
+                <Ionicons name="grid" size={16} color="#0C553C" />
+              </View>
+              <Text style={styles.panelTitle}>Panel de Control</Text>
             </View>
-            <View style={styles.monthlyDivider} />
-            <View style={styles.monthlyItem}>
-              <Text style={styles.monthlyNumber}>{formatCurrency(stats.ingresosMes)}</Text>
-              <Text style={styles.monthlyLabel}>Ingresos</Text>
+          </View>
+          
+          {/* Stats Grid Compacto */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statMiniCard}>
+              <View style={[styles.statMiniIcon, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="calendar" size={16} color="#3B82F6" />
+              </View>
+              <Text style={styles.statMiniNumber}>{stats.citasHoy}</Text>
+              <Text style={styles.statMiniLabel}>Citas Hoy</Text>
+            </View>
+            
+            <View style={styles.statMiniCard}>
+              <View style={[styles.statMiniIcon, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="cash" size={16} color="#10B981" />
+              </View>
+              <Text style={styles.statMiniNumber}>{formatCurrency(stats.ingresosHoy)}</Text>
+              <Text style={styles.statMiniLabel}>Ingresos Hoy</Text>
+            </View>
+            
+            <View style={styles.statMiniCard}>
+              <View style={[styles.statMiniIcon, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="people" size={16} color="#F59E0B" />
+              </View>
+              <Text style={styles.statMiniNumber}>{stats.clientesActivos}</Text>
+              <Text style={styles.statMiniLabel}>Clientes</Text>
+            </View>
+            
+            <View style={styles.statMiniCard}>
+              <View style={[styles.statMiniIcon, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="heart" size={16} color="#EF4444" />
+              </View>
+              <Text style={styles.statMiniNumber}>{stats.satisfaccion}%</Text>
+              <Text style={styles.statMiniLabel}>Satisfacción</Text>
+            </View>
+          </View>
+
+          {/* Resumen del Mes Compacto */}
+          <View style={styles.monthlyCompact}>
+            <View style={styles.monthlyCompactHeader}>
+              <Ionicons name="trending-up" size={14} color="#0C553C" />
+              <Text style={styles.monthlyCompactTitle}>Resumen del Mes</Text>
+            </View>
+            <View style={styles.monthlyCompactRow}>
+              <View style={styles.monthlyCompactItem}>
+                <Text style={styles.monthlyCompactValue}>{stats.reservasMes}</Text>
+                <Text style={styles.monthlyCompactLabel}>Reservas</Text>
+              </View>
+              <View style={styles.monthlyCompactDivider} />
+              <View style={styles.monthlyCompactItem}>
+                <Text style={styles.monthlyCompactValue}>{formatCurrency(stats.ingresosMes)}</Text>
+                <Text style={styles.monthlyCompactLabel}>Ingresos</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -363,152 +462,334 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   header: {
-    backgroundColor: '#0C553C',
     paddingTop: 50,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  headerTop: {
+  headerDecoration: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  decorCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  decorCircle2: {
+    position: 'absolute',
+    top: 80,
+    right: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  decorCircle3: {
+    position: 'absolute',
+    bottom: -30,
+    left: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  headerContent: {
+    zIndex: 1,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    gap: 8,
   },
-  profileImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  profileImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  logoContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  headerInfo: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  welcome: {
+  brandText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  proBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFD700',
+    letterSpacing: 0.5,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 8,
-    paddingHorizontal: 15,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
     borderRadius: 20,
-    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   logoutText: {
-    color: '#fff',
+    color: '#FF6B6B',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImageWrapper: {
+    position: 'relative',
+  },
+  profileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  profileImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    borderWidth: 3,
+    borderColor: '#0C553C',
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  greeting: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 2,
+  },
+  companyName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    gap: 5,
+  },
+  roleText: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  quickStatsRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  quickStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickStatValue: {
     fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  quickStatLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 1,
+  },
+  quickStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   content: {
     flex: 1,
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 12,
+    marginTop: 8,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  statCard: {
+  // Panel de Control Compacto
+  panelControlContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    width: '48%',
-    alignItems: 'center',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0C553C',
+  panelHeader: {
+    marginBottom: 12,
   },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  monthlyStatsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  monthlyTitleRow: {
+  panelTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 15,
     gap: 8,
   },
-  monthlyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  panelIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#E8F5F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  panelTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  // Stats Grid Compacto
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  statMiniCard: {
+    width: '48%',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  statMiniIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statMiniNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  statMiniLabel: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  // Resumen Mensual Compacto
+  monthlyCompact: {
+    backgroundColor: '#E8F5F0',
+    borderRadius: 12,
+    padding: 12,
+  },
+  monthlyCompactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  monthlyCompactTitle: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#0C553C',
   },
-  monthlyRow: {
+  monthlyCompactRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
   },
-  monthlyItem: {
-    alignItems: 'center',
+  monthlyCompactItem: {
     flex: 1,
+    alignItems: 'center',
   },
-  monthlyNumber: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+  monthlyCompactValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0C553C',
   },
-  monthlyLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
+  monthlyCompactLabel: {
+    fontSize: 10,
+    color: '#0C553C',
+    opacity: 0.7,
+    marginTop: 2,
   },
-  monthlyDivider: {
+  monthlyCompactDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: '#ddd',
+    height: 30,
+    backgroundColor: 'rgba(12, 85, 60, 0.2)',
   },
   servicesGrid: {
     flexDirection: 'row',

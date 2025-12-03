@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getReservasUsuario, Reserva, User, getProfile } from '../services/api';
+import { getReservasUsuario, Reserva, User, getProfile, getMiSuscripcion, Suscripcion } from '../services/api';
 import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
 
 export default function ClientDashboard() {
@@ -15,13 +15,28 @@ export default function ClientDashboard() {
   const [currentTime, setCurrentTime] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
+  const [nextAppointment, setNextAppointment] = useState<{fecha: string, hora: string} | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const [miSuscripcion, setMiSuscripcion] = useState<Suscripcion | null>(null);
 
   useEffect(() => {
     loadUserData();
     updateGreeting();
+    loadSuscripcion();
   }, []);
+
+  const loadSuscripcion = async () => {
+    try {
+      const response = await getMiSuscripcion();
+      if (response.success && response.data) {
+        setMiSuscripcion(response.data);
+      }
+    } catch (error) {
+      console.error('Error cargando suscripción:', error);
+    }
+  };
 
   useEffect(() => {
     if (userId) {
@@ -102,15 +117,30 @@ export default function ClientDashboard() {
         console.log('[Dashboard] Total reservas:', reservas.length);
         console.log('[Dashboard] Estados de reservas:', reservas.map(r => r.estado));
         
-        // Calcular estadísticas - usar 'completado' según el modelo Django
-        const pending = reservas.filter(r => r.estado === 'pendiente' || r.estado === 'confirmada' || r.estado === 'en_proceso').length;
+        // Calcular estadísticas
+        const pendientes = reservas.filter(r => r.estado === 'pendiente' || r.estado === 'confirmada' || r.estado === 'en_proceso');
         const completed = reservas.filter(r => r.estado === 'completado' || r.estado === 'completada').length;
+        const cancelled = reservas.filter(r => (r as any).estado === 'cancelada' || (r as any).estado === 'cancelado').length;
         
-        console.log('[Dashboard] Pending count:', pending);
-        console.log('[Dashboard] Completed count:', completed);
-        
-        setPendingCount(pending);
+        setPendingCount(pendientes.length);
         setCompletedCount(completed);
+        setCancelledCount(cancelled);
+        
+        // Encontrar próxima cita
+        if (pendientes.length > 0) {
+          const sorted = pendientes.sort((a, b) => {
+            const dateA = new Date(a.fecha.toString().split('T')[0] + 'T' + a.hora.toString().substring(0, 5));
+            const dateB = new Date(b.fecha.toString().split('T')[0] + 'T' + b.hora.toString().substring(0, 5));
+            return dateA.getTime() - dateB.getTime();
+          });
+          const next = sorted[0];
+          setNextAppointment({
+            fecha: next.fecha.toString().split('T')[0],
+            hora: next.hora.toString().substring(0, 5)
+          });
+        } else {
+          setNextAppointment(null);
+        }
       }
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
@@ -120,6 +150,7 @@ export default function ClientDashboard() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadUserData();
+    await loadSuscripcion();
     if (userId) {
       await fetchStats(userId);
     }
@@ -189,22 +220,134 @@ export default function ClientDashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0C553C']} />
         }
       >
-        <View style={styles.quickStats}>
-          <View style={[styles.statItem, styles.statItemPending]}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="time-outline" size={24} color="#FF9800" />
+        {/* Stats Cards - Diseño compacto */}
+        <View style={styles.statsContainer}>
+          {/* Fila superior - 3 stats pequeños */}
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, styles.statCardPending]}>
+              <View style={styles.statCardIcon}>
+                <Ionicons name="time" size={18} color="#F59E0B" />
+              </View>
+              <View style={styles.statCardContent}>
+                <Text style={styles.statCardNumber}>{pendingCount}</Text>
+                <Text style={styles.statCardLabel}>Pendientes</Text>
+              </View>
             </View>
-            <Text style={styles.statNumber}>{pendingCount}</Text>
-            <Text style={styles.statLabel}>Citas Pendientes</Text>
-          </View>
-          <View style={[styles.statItem, styles.statItemCompleted]}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="checkmark-circle-outline" size={24} color="#4CAF50" />
+            
+            <View style={[styles.statCard, styles.statCardCompleted]}>
+              <View style={styles.statCardIcon}>
+                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+              </View>
+              <View style={styles.statCardContent}>
+                <Text style={styles.statCardNumber}>{completedCount}</Text>
+                <Text style={styles.statCardLabel}>Completadas</Text>
+              </View>
             </View>
-            <Text style={styles.statNumber}>{completedCount}</Text>
-            <Text style={styles.statLabel}>Lavados Realizados</Text>
+            
+            <View style={[styles.statCard, styles.statCardCancelled]}>
+              <View style={styles.statCardIcon}>
+                <Ionicons name="close-circle" size={18} color="#EF4444" />
+              </View>
+              <View style={styles.statCardContent}>
+                <Text style={styles.statCardNumber}>{cancelledCount}</Text>
+                <Text style={styles.statCardLabel}>Canceladas</Text>
+              </View>
+            </View>
           </View>
+          
+          {/* Próxima cita - Card especial */}
+          <TouchableOpacity 
+            style={styles.nextAppointmentCard}
+            onPress={() => router.push('./my-appointments')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.nextAppointmentLeft}>
+              <View style={styles.nextAppointmentIconBg}>
+                <Ionicons name="calendar" size={20} color="#0C553C" />
+              </View>
+            </View>
+            <View style={styles.nextAppointmentContent}>
+              <Text style={styles.nextAppointmentTitle}>Próxima Cita</Text>
+              {nextAppointment ? (
+                <View style={styles.nextAppointmentInfo}>
+                  <View style={styles.nextAppointmentDate}>
+                    <Ionicons name="calendar-outline" size={14} color="#0C553C" />
+                    <Text style={styles.nextAppointmentDateText}>
+                      {new Date(nextAppointment.fecha + 'T12:00:00').toLocaleDateString('es-ES', { 
+                        weekday: 'short', 
+                        day: 'numeric', 
+                        month: 'short' 
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.nextAppointmentTime}>
+                    <Ionicons name="time-outline" size={14} color="#0C553C" />
+                    <Text style={styles.nextAppointmentTimeText}>{nextAppointment.hora}</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.nextAppointmentEmpty}>No tienes citas programadas</Text>
+              )}
+            </View>
+            <View style={styles.nextAppointmentArrow}>
+              <Ionicons name="chevron-forward" size={20} color="#0C553C" />
+            </View>
+          </TouchableOpacity>
         </View>
+
+        {/* Tarjeta de Mi Plan */}
+        <TouchableOpacity 
+          style={styles.planCard}
+          onPress={() => router.push('./subscription-plans')}
+          activeOpacity={0.8}
+        >
+          {miSuscripcion ? (
+            <>
+              <View style={styles.planCardLeft}>
+                <View style={styles.planCardIconBg}>
+                  <Ionicons name="ribbon" size={24} color="#F59E0B" />
+                </View>
+              </View>
+              <View style={styles.planCardContent}>
+                <View style={styles.planCardHeader}>
+                  <Text style={styles.planCardTitle}>Mi Plan</Text>
+                  <View style={styles.planActiveBadge}>
+                    <Text style={styles.planActiveBadgeText}>Activo</Text>
+                  </View>
+                </View>
+                <Text style={styles.planCardName}>{miSuscripcion.plan_nombre}</Text>
+                <View style={styles.planCardStats}>
+                  <View style={styles.planCardStat}>
+                    <Ionicons name="car-sport" size={14} color="#0C553C" />
+                    <Text style={styles.planCardStatText}>
+                      {typeof miSuscripcion.servicios_restantes === 'string' 
+                        ? 'Ilimitados' 
+                        : `${miSuscripcion.servicios_restantes} disponibles`}
+                    </Text>
+                  </View>
+                  <View style={styles.planCardStat}>
+                    <Ionicons name="time" size={14} color="#0C553C" />
+                    <Text style={styles.planCardStatText}>{miSuscripcion.dias_restantes} días</Text>
+                  </View>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#0C553C" />
+            </>
+          ) : (
+            <>
+              <View style={styles.planCardLeft}>
+                <View style={[styles.planCardIconBg, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="pricetags" size={24} color="#0C553C" />
+                </View>
+              </View>
+              <View style={styles.planCardContent}>
+                <Text style={styles.planCardTitle}>Planes de Suscripción</Text>
+                <Text style={styles.planCardSubtitle}>¡Ahorra en cada lavado!</Text>
+                <Text style={styles.planCardCta}>Ver planes disponibles →</Text>
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
         
@@ -237,6 +380,18 @@ export default function ClientDashboard() {
           
           <TouchableOpacity 
             style={styles.serviceCard}
+            onPress={() => router.push('./subscription-plans')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.serviceIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="ribbon" size={28} color="#F59E0B" />
+            </View>
+            <Text style={styles.serviceTitle}>Planes</Text>
+            <Text style={styles.serviceDescription}>Suscripciones</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.serviceCard}
             onPress={() => router.push('./client-profile')}
             activeOpacity={0.7}
           >
@@ -260,23 +415,26 @@ export default function ClientDashboard() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.promotionCard}>
-          <View style={styles.promotionHeader}>
-            <View style={styles.promotionIconContainer}>
-              <Ionicons name="gift-outline" size={24} color="#0C553C" />
+        {/* Tips de Cuidado */}
+        <View style={styles.tipsCard}>
+          <View style={styles.tipsHeader}>
+            <View style={styles.tipsIconBg}>
+              <Ionicons name="bulb" size={22} color="#F59E0B" />
             </View>
-            <Text style={styles.promotionTitle}>Oferta Especial</Text>
+            <View style={styles.tipsHeaderText}>
+              <Text style={styles.tipsTitle}>¿Sabías que...?</Text>
+              <Text style={styles.tipsSubtitle}>Tip del día</Text>
+            </View>
           </View>
-          <Text style={styles.promotionText}>
-            ¡Lavado completo + encerado por solo $25,000! Válido hasta fin de mes.
+          <Text style={styles.tipsText}>
+            Lavar tu auto regularmente no solo mejora su apariencia, sino que también protege la pintura de la corrosión y mantiene su valor de reventa. ¡Agenda tu próximo lavado!
           </Text>
-          <TouchableOpacity 
-            style={styles.promotionButton}
-            onPress={() => router.push('./book-appointment')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.promotionButtonText}>¡Reservar Ahora!</Text>
-          </TouchableOpacity>
+          <View style={styles.tipsFooter}>
+            <View style={styles.tipsTag}>
+              <Ionicons name="car-sport" size={14} color="#0C553C" />
+              <Text style={styles.tipsTagText}>Cuidado del vehículo</Text>
+            </View>
+          </View>
         </View>
 
         <View style={{ height: 30 }} />
@@ -385,58 +543,142 @@ const styles = StyleSheet.create({
     padding: 20,
     marginTop: -15,
   },
-  quickStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
+  // ============================================
+  // ESTILOS STATS COMPACTOS
+  // ============================================
+  statsContainer: {
+    marginBottom: 20,
     marginTop: 5,
   },
-  statItem: {
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  statCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    width: '48%',
+    borderRadius: 12,
+    padding: 12,
+    width: '31%',
+    flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 6,
+    elevation: 3,
   },
-  statItemPending: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+  statCardPending: {
+    borderTopWidth: 3,
+    borderTopColor: '#F59E0B',
   },
-  statItemCompleted: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+  statCardCompleted: {
+    borderTopWidth: 3,
+    borderTopColor: '#10B981',
   },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F9F5',
+  statCardCancelled: {
+    borderTopWidth: 3,
+    borderTopColor: '#EF4444',
+  },
+  statCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 8,
   },
-  statIcon: {
-    fontSize: 20,
+  statCardContent: {
+    flex: 1,
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0C553C',
+  statCardNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  statCardLabel: {
+    fontSize: 9,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  // Próxima cita card
+  nextAppointmentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  nextAppointmentLeft: {
+    marginRight: 12,
+  },
+  nextAppointmentIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nextAppointmentContent: {
+    flex: 1,
+  },
+  nextAppointmentTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
     marginBottom: 4,
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 16,
+  nextAppointmentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nextAppointmentDate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nextAppointmentDateText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0C553C',
+    textTransform: 'capitalize',
+  },
+  nextAppointmentTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  nextAppointmentTimeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0C553C',
+  },
+  nextAppointmentEmpty: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  nextAppointmentArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 20,
@@ -498,59 +740,160 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
   },
-  promotionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 20,
+  // ============================================
+  // ESTILOS TIPS CARD
+  // ============================================
+  tipsCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
+    padding: 16,
     marginTop: 10,
-    borderLeftWidth: 5,
-    borderLeftColor: '#0C553C',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.15,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 6,
+    elevation: 3,
   },
-  promotionHeader: {
+  tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  promotionIconContainer: {
-    marginRight: 8,
-  },
-  promotionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0C553C',
-  },
-  promotionText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  promotionButton: {
-    backgroundColor: '#0C553C',
+  tipsIconBg: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignSelf: 'flex-start',
-    shadowColor: '#0C553C',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  promotionButtonText: {
-    color: '#fff',
+  tipsHeaderText: {
+    flex: 1,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  tipsSubtitle: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 1,
+  },
+  tipsText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    color: '#78350F',
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  tipsFooter: {
+    flexDirection: 'row',
+  },
+  tipsTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 5,
+  },
+  tipsTagText: {
+    fontSize: 12,
+    color: '#0C553C',
+    fontWeight: '500',
+  },
+  // Estilos para la tarjeta del plan
+  planCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    marginHorizontal: 16,
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#0C553C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#E8F5F0',
+  },
+  planCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  planCardIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  planCardContent: {
+    flex: 1,
+  },
+  planCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  planCardTitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  planActiveBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  planActiveBadgeText: {
+    fontSize: 10,
+    color: '#16A34A',
+    fontWeight: '600',
+  },
+  planCardName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  planCardStats: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  planCardStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  planCardStatText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  planCardSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  planCardCta: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

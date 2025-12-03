@@ -2,6 +2,7 @@ import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   getResumenPagos, 
   getPeriodosLiquidacion, 
@@ -150,14 +151,36 @@ export default function CompanyPayments() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mis Pagos</Text>
-        <View style={styles.placeholder} />
-      </View>
+      {/* Header Premium */}
+      <LinearGradient
+        colors={['#0C553C', '#0A4832', '#083D2A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerDecoration1} />
+        <View style={styles.headerDecoration2} />
+        
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <View style={styles.backButtonCircle}>
+              <Ionicons name="arrow-back" size={20} color="#0C553C" />
+            </View>
+          </TouchableOpacity>
+          
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconBadge}>
+              <Ionicons name="wallet" size={20} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.headerSubtitle}>Gestión de</Text>
+              <Text style={styles.headerTitle}>Mis Pagos</Text>
+            </View>
+          </View>
+          
+          <View style={styles.placeholder} />
+        </View>
+      </LinearGradient>
 
       <ScrollView 
         style={styles.content}
@@ -175,53 +198,51 @@ export default function CompanyPayments() {
           </View>
         )}
 
-        {/* Resumen de pagos */}
+        {/* Resumen de pagos - Rediseñado */}
         <View style={styles.summaryContainer}>
-          <Text style={styles.sectionTitle}>Resumen</Text>
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryIconBadge}>
+              <Ionicons name="stats-chart" size={16} color="#0C553C" />
+            </View>
+            <Text style={styles.sectionTitle}>Resumen de Pagos</Text>
+          </View>
           
+          {/* Cards principales - solo 2 */}
           <View style={styles.summaryGrid}>
-            <View style={styles.summaryCard}>
-              <View style={[styles.summaryIcon, { backgroundColor: 'rgba(255, 193, 7, 0.1)' }]}>
-                <Ionicons name="hourglass-outline" size={24} color="#ffc107" />
-              </View>
-              <Text style={styles.summaryAmount}>{formatCurrency(resumen?.pendienteActual || 0)}</Text>
-              <Text style={styles.summaryLabel}>Pendiente Actual</Text>
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={[styles.summaryIcon, { backgroundColor: 'rgba(220, 53, 69, 0.1)' }]}>
-                <Ionicons name="alert-circle-outline" size={24} color="#dc3545" />
-              </View>
-              <Text style={styles.summaryAmount}>{formatCurrency(resumen?.pendientePago || 0)}</Text>
-              <Text style={styles.summaryLabel}>Por Cobrar</Text>
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={[styles.summaryIcon, { backgroundColor: 'rgba(40, 167, 69, 0.1)' }]}>
-                <Ionicons name="checkmark-circle-outline" size={24} color="#28a745" />
-              </View>
-              <Text style={styles.summaryAmount}>{formatCurrency(resumen?.totalPagado || 0)}</Text>
-              <Text style={styles.summaryLabel}>Total Recibido</Text>
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={[styles.summaryIcon, { backgroundColor: 'rgba(12, 85, 60, 0.1)' }]}>
-                <Ionicons name="receipt-outline" size={24} color="#0C553C" />
+            <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
+              <View style={[styles.summaryIconCircle, { backgroundColor: 'rgba(12, 85, 60, 0.15)' }]}>
+                <Ionicons name="receipt" size={18} color="#0C553C" />
               </View>
               <Text style={styles.summaryAmount}>{resumen?.reservasSinLiquidar?.cantidad || 0}</Text>
               <Text style={styles.summaryLabel}>Sin Liquidar</Text>
               {resumen?.reservasSinLiquidar?.valor ? (
-                <Text style={styles.summarySubAmount}>{formatCurrency(resumen.reservasSinLiquidar.valor)}</Text>
-              ) : null}
+                <Text style={styles.summarySubLabel}>{formatCurrency(resumen.reservasSinLiquidar.valor)}</Text>
+              ) : (
+                <Text style={styles.summarySubLabel}>$0 pendiente</Text>
+              )}
+            </View>
+
+            <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
+              <View style={[styles.summaryIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+              </View>
+              <Text style={styles.summaryAmount}>{formatCurrency(resumen?.totalPagado || 0)}</Text>
+              <Text style={styles.summaryLabel}>Total Recibido</Text>
+              <Text style={styles.summarySubLabel}>{resumen?.periodosPagados || 0} pago(s) realizados</Text>
             </View>
           </View>
 
           {resumen?.ultimoPago && (
             <View style={styles.lastPaymentContainer}>
-              <Ionicons name="cash-outline" size={18} color="#28a745" />
-              <Text style={styles.lastPaymentText}>
-                Último pago: {formatCurrency(resumen.ultimoPago.total_neto || 0)} el {formatDate(resumen.ultimoPago.fecha_pago)}
-              </Text>
+              <View style={styles.lastPaymentIcon}>
+                <Ionicons name="checkmark-done" size={16} color="#10B981" />
+              </View>
+              <View style={styles.lastPaymentInfo}>
+                <Text style={styles.lastPaymentTitle}>Último pago recibido</Text>
+                <Text style={styles.lastPaymentText}>
+                  {formatCurrency(resumen.ultimoPago.total_neto || 0)} • {formatDate(resumen.ultimoPago.fecha_pago)}
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -259,20 +280,7 @@ export default function CompanyPayments() {
 
         {/* Lista de períodos */}
         <View style={styles.listContainer}>
-          {periodos.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons 
-                name={activeTab === 'pendientes' ? 'wallet-outline' : 'cash-outline'} 
-                size={60} 
-                color="#ccc" 
-              />
-              <Text style={styles.emptyText}>
-                {activeTab === 'pendientes' 
-                  ? 'No tienes pagos pendientes' 
-                  : 'No tienes pagos realizados'}
-              </Text>
-            </View>
-          ) : (
+          {periodos.length > 0 && (
             periodos.map((periodo) => (
               <TouchableOpacity 
                 key={periodo.id_periodo} 
@@ -355,7 +363,7 @@ export default function CompanyPayments() {
                   <Text style={styles.reservaNumero}>#{reserva.numero_reserva}</Text>
                   <Text style={styles.reservaFecha}>{formatDate(reserva.fecha)}</Text>
                 </View>
-                <Text style={styles.reservaMonto}>{formatCurrency(reserva.total_servicio)}</Text>
+                <Text style={styles.reservaMonto}>{formatCurrency(Number(reserva.total_servicio) || 0)}</Text>
               </View>
             ))}
 
@@ -510,7 +518,7 @@ export default function CompanyPayments() {
               <View style={styles.reservasModalTotal}>
                 <Text style={styles.reservasModalTotalLabel}>Total pendiente:</Text>
                 <Text style={styles.reservasModalTotalValue}>
-                  {formatCurrency(reservasPendientes.reduce((sum, r) => sum + r.total_servicio, 0))}
+                  {formatCurrency(reservasPendientes.reduce((sum, r) => sum + (Number(r.total_servicio) || 0), 0))}
                 </Text>
               </View>
 
@@ -518,7 +526,7 @@ export default function CompanyPayments() {
                 <View key={reserva.id_reserva} style={styles.reservaModalItem}>
                   <View style={styles.reservaModalHeader}>
                     <Text style={styles.reservaModalNumero}>#{reserva.numero_reserva}</Text>
-                    <Text style={styles.reservaModalMonto}>{formatCurrency(reserva.total_servicio)}</Text>
+                    <Text style={styles.reservaModalMonto}>{formatCurrency(Number(reserva.total_servicio) || 0)}</Text>
                   </View>
                   <View style={styles.reservaModalDetails}>
                     <View style={styles.reservaModalDetailRow}>
@@ -560,30 +568,84 @@ export default function CompanyPayments() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F0F4F3',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F0F4F3',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: '#666',
   },
+  // Header Premium
   header: {
-    backgroundColor: '#0C553C',
     paddingTop: 50,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  headerDecoration1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerDecoration2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 1,
   },
-  backButton: {
-    padding: 5,
+  backButton: {},
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
   },
   headerTitle: {
     fontSize: 20,
@@ -591,16 +653,16 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   placeholder: {
-    width: 34,
+    width: 40,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   errorContainer: {
     backgroundColor: '#fff3cd',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
@@ -614,83 +676,173 @@ const styles = StyleSheet.create({
     backgroundColor: '#0C553C',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 5,
+    borderRadius: 8,
   },
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
   },
+  // Resumen de Pagos
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
   summaryContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  summaryIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E8F5F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
     gap: 10,
   },
   summaryCard: {
     width: '48%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FAFAFA',
     borderRadius: 12,
-    padding: 15,
+    padding: 12,
     alignItems: 'center',
-    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  summaryCardWarning: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  summaryCardDanger: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
+  },
+  summaryCardSuccess: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  summaryCardPrimary: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#0C553C',
+  },
+  summaryIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   summaryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a1a',
     textAlign: 'center',
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginTop: 5,
+    marginTop: 2,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  summarySubLabel: {
+    fontSize: 9,
+    color: '#888',
+    marginTop: 2,
     textAlign: 'center',
   },
   summarySubAmount: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#0C553C',
-    marginTop: 3,
+    marginTop: 2,
   },
+  // Total Bar
+  totalBar: {
+    flexDirection: 'row',
+    backgroundColor: '#0C553C',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  totalBarItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  totalBarLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 4,
+  },
+  totalBarValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  totalBarDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  // Último pago
   lastPaymentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 15,
-    paddingTop: 15,
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#F0F0F0',
+  },
+  lastPaymentIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lastPaymentInfo: {
+    flex: 1,
+  },
+  lastPaymentTitle: {
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 2,
   },
   lastPaymentText: {
-    fontSize: 14,
-    color: '#28a745',
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
   },
   tabsContainer: {
     flexDirection: 'row',

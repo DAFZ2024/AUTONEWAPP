@@ -300,78 +300,102 @@ export default function CompanyReservations() {
     const isUpdating = updatingId === item.id;
 
     return (
-      <TouchableOpacity style={styles.reservationCard} activeOpacity={0.9}>
+      <TouchableOpacity style={styles.reservationCard} activeOpacity={0.95}>
         <LinearGradient
-          colors={['#ffffff', '#fafbfc']}
+          colors={['#ffffff', '#f8faf9']}
           style={styles.cardGradient}
         >
+          {/* Barra de estado superior */}
+          <View style={[styles.cardStatusBar, { backgroundColor: statusColors.bg }]}>
+            <View style={[styles.cardStatusIndicator, { backgroundColor: statusColors.text }]} />
+            <Text style={[styles.cardStatusText, { color: statusColors.text }]}>
+              {getStatusLabel(item.status)}
+            </Text>
+            {item.numero_reserva && (
+              <Text style={styles.cardReservaNum}>#{item.numero_reserva}</Text>
+            )}
+          </View>
+
+          {/* Header con servicio */}
           <View style={styles.cardHeader}>
-            <View style={styles.serviceIcon}>
-              <Ionicons name={getServiceIcon(item.service)} size={24} color="#0C553C" />
+            <View style={styles.serviceIconContainer}>
+              <LinearGradient
+                colors={['rgba(12, 85, 60, 0.1)', 'rgba(12, 85, 60, 0.05)']}
+                style={styles.serviceIcon}
+              >
+                <Ionicons name={getServiceIcon(item.service)} size={26} color="#0C553C" />
+              </LinearGradient>
             </View>
             <View style={styles.cardTitle}>
               <Text style={styles.serviceName} numberOfLines={2}>{item.service}</Text>
-              <Text style={styles.vehicleInfo}>{item.vehicle}</Text>
+              {item.vehicle && item.vehicle !== 'No especificado' && (
+                <View style={styles.vehicleRow}>
+                  <Ionicons name="car-sport-outline" size={14} color="#64748b" />
+                  <Text style={styles.vehicleInfo}>{item.vehicle}</Text>
+                </View>
+              )}
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusColors.bg, borderColor: statusColors.border }]}>
-              <Text style={[styles.statusText, { color: statusColors.text }]}>
-                {getStatusLabel(item.status)}
-              </Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceCurrency}>$</Text>
+              <Text style={styles.priceAmount}>{formatCurrency(item.price).replace('$', '')}</Text>
             </View>
           </View>
 
-          <View style={styles.cardBody}>
-            <View style={styles.clientInfo}>
-              <Ionicons name="person-outline" size={18} color="#64748b" style={styles.infoIcon} />
-              <View>
-                <Text style={styles.clientName}>{item.client}</Text>
+          {/* Divider */}
+          <View style={styles.cardDivider} />
+
+          {/* Info del cliente y hora */}
+          <View style={styles.cardInfoSection}>
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardIcon}>
+                <Ionicons name="person" size={16} color="#0C553C" />
+              </View>
+              <View style={styles.infoCardContent}>
+                <Text style={styles.infoCardLabel}>Cliente</Text>
+                <Text style={styles.infoCardValue}>{item.client}</Text>
                 {item.telefono && (
                   <View style={styles.phoneRow}>
-                    <Ionicons name="call-outline" size={12} color="#94a3b8" />
+                    <Ionicons name="call" size={10} color="#94a3b8" />
                     <Text style={styles.clientPhone}>{item.telefono}</Text>
                   </View>
                 )}
               </View>
             </View>
 
-            <View style={styles.timeInfo}>
-              <Ionicons name="time-outline" size={18} color="#64748b" style={styles.infoIcon} />
-              <Text style={styles.timeText}>{item.time}</Text>
-            </View>
-
-            <View style={styles.priceInfo}>
-              <Ionicons name="cash-outline" size={18} color="#0C553C" style={styles.infoIcon} />
-              <Text style={styles.priceText}>{formatCurrency(item.price)}</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardIcon}>
+                <Ionicons name="time" size={16} color="#0C553C" />
+              </View>
+              <View style={styles.infoCardContent}>
+                <Text style={styles.infoCardLabel}>Hora</Text>
+                <Text style={styles.infoCardValue}>{item.time}</Text>
+              </View>
             </View>
           </View>
 
+          {/* Botón QR para pendientes */}
           {item.status === 'pendiente' && (
-            <View style={styles.cardActions}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.qrButton, (isUpdating || loadingQR) && styles.disabledButton]}
-                onPress={() => handleShowQR(item)}
-                disabled={isUpdating || loadingQR}
+            <TouchableOpacity 
+              style={[styles.qrButton, (isUpdating || loadingQR) && styles.disabledButton]}
+              onPress={() => handleShowQR(item)}
+              disabled={isUpdating || loadingQR}
+            >
+              <LinearGradient
+                colors={['#0C553C', '#0a4a32']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.qrButtonGradient}
               >
                 {loadingQR && qrReserva?.id === item.id ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <View style={styles.buttonContent}>
-                    <Ionicons name="qr-code-outline" size={16} color="#fff" />
-                    <Text style={styles.qrButtonText}>Mostrar QR</Text>
-                  </View>
+                  <>
+                    <Ionicons name="qr-code" size={18} color="#fff" />
+                    <Text style={styles.qrButtonText}>Mostrar Código QR</Text>
+                  </>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.cancelButton, isUpdating && styles.disabledButton]}
-                onPress={() => confirmAction(item.id, 'cancelada')}
-                disabled={isUpdating}
-              >
-                <View style={styles.buttonContent}>
-                  <Ionicons name="close-outline" size={16} color="#dc2626" />
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -388,63 +412,114 @@ export default function CompanyReservations() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0C553C', '#0a4a32']}
+        colors={['#0C553C', '#0a4a32', '#083d2b']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.header}
       >
+        {/* Decoraciones de fondo */}
+        <View style={styles.headerDecoration1} />
+        <View style={styles.headerDecoration2} />
+        <View style={styles.headerDecoration3} />
+        
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.replace('./company-dashboard')} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-            <Text style={styles.backButtonText}>Volver</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitle}>
-            <Text style={styles.title}>Reservas</Text>
-            <Text style={styles.subtitle}>Gestiona tus citas</Text>
+          {/* Fila superior: Volver + Icono */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => router.replace('./company-dashboard')} style={styles.backButton}>
+              <View style={styles.backButtonInner}>
+                <Ionicons name="arrow-back" size={18} color="#0C553C" />
+              </View>
+              <Text style={styles.backButtonText}>Volver</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.headerIconContainer}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.1)']}
+                style={styles.headerIconBg}
+              >
+                <Ionicons name="calendar" size={24} color="#fff" />
+              </LinearGradient>
+            </View>
+          </View>
+          
+          {/* Título principal */}
+          <View style={styles.headerTitleSection}>
+            <Text style={styles.title}>Gestión de Reservas</Text>
+            <Text style={styles.subtitle}>Administra todas las citas de tu empresa</Text>
+          </View>
+          
+          {/* Mini stats en header */}
+          <View style={styles.headerMiniStats}>
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="time-outline" size={16} color="#0C553C" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{stats.pending}</Text>
+                <Text style={styles.miniStatLabel}>Pendientes</Text>
+              </View>
+            </View>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="today-outline" size={16} color="#0C553C" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{stats.today}</Text>
+                <Text style={styles.miniStatLabel}>Hoy</Text>
+              </View>
+            </View>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStatItem}>
+              <View style={styles.miniStatIcon}>
+                <Ionicons name="cash-outline" size={16} color="#0C553C" />
+              </View>
+              <View>
+                <Text style={styles.miniStatValue}>{formatCurrency(stats.totalRevenue)}</Text>
+                <Text style={styles.miniStatLabel}>Ingresos</Text>
+              </View>
+            </View>
           </View>
         </View>
       </LinearGradient>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.pending}</Text>
-            <Text style={styles.statLabel}>Pendientes</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.today}</Text>
-            <Text style={styles.statLabel}>Hoy</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.thisWeek}</Text>
-            <Text style={styles.statLabel}>Semana</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { fontSize: 14 }]}>{formatCurrency(stats.totalRevenue)}</Text>
-            <Text style={styles.statLabel}>Ingresos</Text>
-          </View>
+      <View style={styles.filtersSection}>
+        <View style={styles.filtersTitleRow}>
+          <Ionicons name="filter-outline" size={18} color="#0C553C" />
+          <Text style={styles.filtersTitle}>Filtrar por</Text>
         </View>
-      </ScrollView>
-
-      <View style={styles.filtersContainer}>
-        {[
-          { key: 'all', label: 'Todas', count: stats.total },
-          { key: 'pending', label: 'Pendientes', count: stats.pending },
-          { key: 'today', label: 'Hoy', count: stats.today },
-          { key: 'week', label: 'Esta Semana', count: stats.thisWeek },
-        ].map(({ key, label, count }) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.filterChip, filter === key && styles.filterChipActive]}
-            onPress={() => setFilter(key as any)}
-          >
-            <Text style={[styles.filterChipText, filter === key && styles.filterChipTextActive]}>
-              {label} ({count})
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+          <View style={styles.filtersContainer}>
+            {[
+              { key: 'all', label: 'Todas', count: stats.total, icon: 'list-outline' },
+              { key: 'pending', label: 'Pendientes', count: stats.pending, icon: 'time-outline' },
+              { key: 'today', label: 'Hoy', count: stats.today, icon: 'today-outline' },
+              { key: 'week', label: 'Esta Semana', count: stats.thisWeek, icon: 'calendar-outline' },
+            ].map(({ key, label, count, icon }) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.filterChip, filter === key && styles.filterChipActive]}
+                onPress={() => setFilter(key as any)}
+              >
+                <View style={styles.filterChipContent}>
+                  <Ionicons 
+                    name={icon as any} 
+                    size={16} 
+                    color={filter === key ? '#fff' : '#0C553C'} 
+                  />
+                  <Text style={[styles.filterChipText, filter === key && styles.filterChipTextActive]}>
+                    {label}
+                  </Text>
+                  <View style={[styles.filterChipBadge, filter === key && styles.filterChipBadgeActive]}>
+                    <Text style={[styles.filterChipBadgeText, filter === key && styles.filterChipBadgeTextActive]}>
+                      {count}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
       <SectionList
@@ -540,56 +615,79 @@ export default function CompanyReservations() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { paddingTop: 50, paddingBottom: 24 },
-  headerContent: { paddingHorizontal: 20 },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginBottom: 12, alignSelf: 'flex-start' },
-  backButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  headerTitle: { alignItems: 'center' },
-  title: { color: '#fff', fontSize: 28, fontWeight: 'bold', textAlign: 'center' },
-  subtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 16, textAlign: 'center', marginTop: 4 },
+  header: { paddingTop: 50, paddingBottom: 20, position: 'relative', overflow: 'hidden' },
+  headerDecoration1: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.08)' },
+  headerDecoration2: { position: 'absolute', top: 60, right: 30, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' },
+  headerDecoration3: { position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.06)' },
+  headerContent: { paddingHorizontal: 20, zIndex: 1 },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  backButtonInner: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 },
+  backButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  headerIconContainer: { alignItems: 'center' },
+  headerIconBg: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  headerTitleSection: { marginBottom: 20 },
+  title: { color: '#fff', fontSize: 26, fontWeight: 'bold' },
+  subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 },
+  headerMiniStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, alignItems: 'center', justifyContent: 'space-around', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 },
+  miniStatItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  miniStatIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(12, 85, 60, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  miniStatValue: { fontSize: 14, fontWeight: 'bold', color: '#0C553C' },
+  miniStatLabel: { fontSize: 10, color: '#666', marginTop: 1 },
+  miniStatDivider: { width: 1, height: 30, backgroundColor: '#e5e7eb' },
   statsScroll: { maxHeight: 100 },
   statsContainer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16 },
   statCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginRight: 12, minWidth: 80, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
   statNumber: { fontSize: 20, fontWeight: 'bold', color: '#0C553C' },
   statLabel: { fontSize: 12, color: '#666', marginTop: 4, textAlign: 'center' },
-  filtersContainer: { flexDirection: 'row', paddingHorizontal: 20, paddingBottom: 16, flexWrap: 'wrap' },
-  filterChip: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e1e5e9' },
-  filterChipActive: { backgroundColor: '#0C553C', borderColor: '#0C553C' },
-  filterChipText: { fontSize: 14, color: '#666', fontWeight: '500' },
+  filtersSection: { paddingTop: 16, paddingBottom: 8 },
+  filtersTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginBottom: 12 },
+  filtersTitle: { fontSize: 15, fontWeight: '600', color: '#0C553C' },
+  filtersScroll: { paddingLeft: 20 },
+  filtersContainer: { flexDirection: 'row', paddingRight: 20, gap: 10 },
+  filterChip: { backgroundColor: '#fff', borderRadius: 25, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1.5, borderColor: 'rgba(12, 85, 60, 0.15)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  filterChipActive: { backgroundColor: '#0C553C', borderColor: '#0C553C', shadowOpacity: 0.15 },
+  filterChipContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  filterChipText: { fontSize: 13, color: '#0C553C', fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
+  filterChipBadge: { backgroundColor: 'rgba(12, 85, 60, 0.1)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, minWidth: 22, alignItems: 'center' },
+  filterChipBadgeActive: { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
+  filterChipBadgeText: { fontSize: 11, fontWeight: 'bold', color: '#0C553C' },
+  filterChipBadgeTextActive: { color: '#fff' },
   listContainer: { paddingBottom: 40 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: '#f8fafc' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#0C553C' },
-  sectionCount: { fontSize: 14, color: '#666', backgroundColor: '#e1e5e9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  itemSeparator: { height: 12 },
-  reservationCard: { marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
-  cardGradient: { padding: 20 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  serviceIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f0f4f8', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  serviceEmoji: { fontSize: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: '#f8fafc' },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1e293b' },
+  sectionCount: { fontSize: 13, color: '#0C553C', backgroundColor: 'rgba(12, 85, 60, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, fontWeight: '600' },
+  itemSeparator: { height: 14 },
+  reservationCard: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', shadowColor: '#0C553C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 5, backgroundColor: '#fff' },
+  cardGradient: { padding: 0 },
+  cardStatusBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  cardStatusIndicator: { width: 8, height: 8, borderRadius: 4 },
+  cardStatusText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardReservaNum: { marginLeft: 'auto', fontSize: 12, color: '#64748b', fontWeight: '500' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingTop: 12, gap: 14 },
+  serviceIconContainer: {},
+  serviceIcon: { width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { flex: 1 },
-  serviceName: { fontSize: 18, fontWeight: 'bold', color: '#0C553C', marginBottom: 2 },
-  vehicleInfo: { fontSize: 14, color: '#666' },
-  statusBadge: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  cardBody: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  clientInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  clientIcon: { fontSize: 16, marginRight: 6 },
-  clientName: { fontSize: 14, color: '#333', fontWeight: '500' },
-  timeInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center' },
-  timeIcon: { fontSize: 16, marginRight: 6 },
-  timeText: { fontSize: 14, color: '#333', fontWeight: '500' },
-  priceInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  priceIcon: { fontSize: 16, marginRight: 6 },
-  priceText: { fontSize: 16, color: '#0C553C', fontWeight: 'bold' },
-  cardActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  actionButton: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 },
-  confirmButton: { backgroundColor: '#0C553C' },
-  confirmButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  cancelButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#dc3545' },
-  cancelButtonText: { color: '#dc3545', fontWeight: '600', fontSize: 14 },
+  serviceName: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 4, lineHeight: 20 },
+  vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  vehicleInfo: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+  priceContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(12, 85, 60, 0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  priceCurrency: { fontSize: 12, color: '#0C553C', fontWeight: '600', marginTop: 2 },
+  priceAmount: { fontSize: 18, color: '#0C553C', fontWeight: 'bold' },
+  cardDivider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 16 },
+  cardInfoSection: { flexDirection: 'row', padding: 16, gap: 12 },
+  infoCard: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, gap: 10 },
+  infoCardIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(12, 85, 60, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  infoCardContent: { flex: 1 },
+  infoCardLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  infoCardValue: { fontSize: 14, color: '#1e293b', fontWeight: '600' },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  clientPhone: { fontSize: 11, color: '#94a3b8' },
+  qrButton: { marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden' },
+  qrButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 10 },
+  qrButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   disabledButton: { opacity: 0.5 },
-  clientPhone: { fontSize: 12, color: '#888', marginTop: 2 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
   loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
@@ -601,13 +699,6 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 16, color: '#dc3545', textAlign: 'center', paddingHorizontal: 40, marginBottom: 16 },
   retryButton: { backgroundColor: '#0C553C', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
   retryButtonText: { color: '#fff', fontWeight: '600' },
-  // Estilos para el botón QR
-  qrButton: { backgroundColor: '#2563eb' },
-  qrButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  // Estilos para iconos y botones
-  infoIcon: { marginRight: 8 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 },
-  buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   qrInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 },
   // Estilos para el modal QR
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },

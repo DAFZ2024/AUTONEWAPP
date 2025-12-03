@@ -16,7 +16,7 @@ module.exports = {
       package: "com.autonew.app",
       versionCode: 1,
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: "#0C553C",
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png"
@@ -40,11 +40,11 @@ module.exports = {
         "expo-splash-screen",
         {
           image: "./assets/images/splash-icon.png",
-          imageWidth: 200,
+          imageWidth: 250,
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#0C553C",
           dark: {
-            backgroundColor: "#000000"
+            backgroundColor: "#0C553C"
           }
         }
       ]
