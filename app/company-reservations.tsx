@@ -13,7 +13,7 @@ type Reservation = {
   client: string;
   date: string;
   time: string;
-  status: 'pendiente' | 'completado' | 'cancelada';
+  status: 'pendiente' | 'completado' | 'cancelada' | 'vencida';
   price: number;
   vehicle: string;
   telefono?: string;
@@ -24,7 +24,7 @@ type Reservation = {
 
 export default function CompanyReservations() {
   const router = useRouter();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'today' | 'week'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'expired' | 'today' | 'week'>('all');
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,7 +63,7 @@ export default function CompanyReservations() {
             client: r.nombre_cliente || 'Cliente',
             date: fechaNormalizada,
             time: r.hora?.substring(0, 5) || '00:00',
-            status: r.estado as 'pendiente' | 'completado' | 'cancelada',
+            status: r.estado as 'pendiente' | 'completado' | 'cancelada' | 'vencida',
             price: parseFloat(r.total?.toString() || '0'),
             vehicle: r.placa_vehiculo || r.tipo_vehiculo || 'No especificado',
             telefono: r.telefono_cliente,
@@ -218,6 +218,7 @@ export default function CompanyReservations() {
     return {
       total: reservations.length,
       pending: reservations.filter((r: Reservation) => r.status === 'pendiente').length,
+      expired: reservations.filter((r: Reservation) => r.status === 'vencida').length,
       today: reservations.filter((r: Reservation) => r.date === today).length,
       thisWeek: reservations.filter((r: Reservation) => r.date >= today && r.date <= weekFromNow).length,
       totalRevenue: reservations.filter((r: Reservation) => r.status === 'completado').reduce((sum: number, r: Reservation) => sum + r.price, 0),
@@ -233,6 +234,9 @@ export default function CompanyReservations() {
     switch (filter) {
       case 'pending':
         filtered = reservations.filter((r: Reservation) => r.status === 'pendiente');
+        break;
+      case 'expired':
+        filtered = reservations.filter((r: Reservation) => r.status === 'vencida');
         break;
       case 'today':
         filtered = reservations.filter((r: Reservation) => r.date === today);
@@ -273,6 +277,7 @@ export default function CompanyReservations() {
       case 'pendiente': return { bg: '#fff3cd', text: '#856404', border: '#ffeaa7' };
       case 'completado': return { bg: '#d4edda', text: '#155724', border: '#c3e6cb' };
       case 'cancelada': return { bg: '#f8d7da', text: '#721c24', border: '#f5c6cb' };
+      case 'vencida': return { bg: '#FFE8D6', text: '#E67E22', border: '#F5B041' };
       default: return { bg: '#e2e3e5', text: '#383d41', border: '#d6d8db' };
     }
   };
@@ -282,6 +287,7 @@ export default function CompanyReservations() {
       case 'pendiente': return 'Pendiente';
       case 'completado': return 'Completado';
       case 'cancelada': return 'Cancelada';
+      case 'vencida': return 'Vencida';
       default: return status;
     }
   };
@@ -397,6 +403,21 @@ export default function CompanyReservations() {
               </LinearGradient>
             </TouchableOpacity>
           )}
+
+          {/* Mensaje para reservas vencidas */}
+          {item.status === 'vencida' && (
+            <View style={styles.expiredMessageContainer}>
+              <View style={styles.expiredMessageIcon}>
+                <Ionicons name="hourglass-outline" size={20} color="#E67E22" />
+              </View>
+              <View style={styles.expiredMessageContent}>
+                <Text style={styles.expiredMessageTitle}>Esperando Reagendamiento</Text>
+                <Text style={styles.expiredMessageText}>
+                  El cliente debe reagendar esta cita y pagar el recargo del 25%
+                </Text>
+              </View>
+            </View>
+          )}
         </LinearGradient>
       </TouchableOpacity>
     );
@@ -491,27 +512,46 @@ export default function CompanyReservations() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <View style={styles.filtersContainer}>
             {[
-              { key: 'all', label: 'Todas', count: stats.total, icon: 'list-outline' },
-              { key: 'pending', label: 'Pendientes', count: stats.pending, icon: 'time-outline' },
-              { key: 'today', label: 'Hoy', count: stats.today, icon: 'today-outline' },
-              { key: 'week', label: 'Esta Semana', count: stats.thisWeek, icon: 'calendar-outline' },
-            ].map(({ key, label, count, icon }) => (
+              { key: 'all', label: 'Todas', count: stats.total, icon: 'list-outline', isExpired: false },
+              { key: 'pending', label: 'Pendientes', count: stats.pending, icon: 'time-outline', isExpired: false },
+              { key: 'expired', label: 'Vencidas', count: stats.expired, icon: 'alert-circle-outline', isExpired: true },
+              { key: 'today', label: 'Hoy', count: stats.today, icon: 'today-outline', isExpired: false },
+              { key: 'week', label: 'Esta Semana', count: stats.thisWeek, icon: 'calendar-outline', isExpired: false },
+            ].map(({ key, label, count, icon, isExpired }) => (
               <TouchableOpacity
                 key={key}
-                style={[styles.filterChip, filter === key && styles.filterChipActive]}
+                style={[
+                  styles.filterChip, 
+                  filter === key && styles.filterChipActive,
+                  isExpired && filter !== key && styles.filterChipExpired,
+                  isExpired && filter === key && styles.filterChipExpiredActive
+                ]}
                 onPress={() => setFilter(key as any)}
               >
                 <View style={styles.filterChipContent}>
                   <Ionicons 
                     name={icon as any} 
                     size={16} 
-                    color={filter === key ? '#fff' : '#0C553C'} 
+                    color={filter === key ? '#fff' : (isExpired ? '#E67E22' : '#0C553C')} 
                   />
-                  <Text style={[styles.filterChipText, filter === key && styles.filterChipTextActive]}>
+                  <Text style={[
+                    styles.filterChipText, 
+                    filter === key && styles.filterChipTextActive,
+                    isExpired && filter !== key && styles.filterChipTextExpired
+                  ]}>
                     {label}
                   </Text>
-                  <View style={[styles.filterChipBadge, filter === key && styles.filterChipBadgeActive]}>
-                    <Text style={[styles.filterChipBadgeText, filter === key && styles.filterChipBadgeTextActive]}>
+                  <View style={[
+                    styles.filterChipBadge, 
+                    filter === key && styles.filterChipBadgeActive,
+                    isExpired && filter !== key && styles.filterChipBadgeExpired,
+                    isExpired && filter === key && styles.filterChipBadgeExpiredActive
+                  ]}>
+                    <Text style={[
+                      styles.filterChipBadgeText, 
+                      filter === key && styles.filterChipBadgeTextActive,
+                      isExpired && filter !== key && styles.filterChipBadgeTextExpired
+                    ]}>
                       {count}
                     </Text>
                   </View>
@@ -542,6 +582,7 @@ export default function CompanyReservations() {
             <Text style={styles.emptySubtext}>
               {filter === 'all' ? 'Aún no tienes reservas registradas' : 
                filter === 'pending' ? 'No hay reservas pendientes' :
+               filter === 'expired' ? 'No hay reservas vencidas' :
                filter === 'today' ? 'No hay reservas para hoy' : 
                'No hay reservas esta semana'}
             </Text>
@@ -714,4 +755,17 @@ const styles = StyleSheet.create({
   qrInstruction: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
   modalCloseMainButton: { backgroundColor: '#0C553C', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, width: '100%' },
   modalCloseMainButtonText: { color: '#fff', fontWeight: '600', fontSize: 16, textAlign: 'center' },
+  // Estilos para filtro de vencidas
+  filterChipExpired: { borderColor: '#E67E22', backgroundColor: '#FFF8F0' },
+  filterChipExpiredActive: { backgroundColor: '#E67E22', borderColor: '#E67E22' },
+  filterChipTextExpired: { color: '#E67E22' },
+  filterChipBadgeExpired: { backgroundColor: 'rgba(230, 126, 34, 0.15)' },
+  filterChipBadgeExpiredActive: { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
+  filterChipBadgeTextExpired: { color: '#E67E22' },
+  // Estilos para mensaje de reserva vencida
+  expiredMessageContainer: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, backgroundColor: '#FFF8F0', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#F5B041', gap: 12 },
+  expiredMessageIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(230, 126, 34, 0.15)', alignItems: 'center', justifyContent: 'center' },
+  expiredMessageContent: { flex: 1 },
+  expiredMessageTitle: { fontSize: 14, fontWeight: '700', color: '#E67E22', marginBottom: 4 },
+  expiredMessageText: { fontSize: 12, color: '#B7791A', lineHeight: 18 },
 });
