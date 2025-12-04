@@ -3,14 +3,14 @@ import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, S
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva, getHorariosDisponibles, reagendarReserva } from '../services/api';
+import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva, getHorariosDisponibles, reagendarReserva, calcularRecargoRecuperacion, recuperarReservaVencida } from '../services/api';
 
 export default function MyAppointments() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'expired' | 'history'>('upcoming');
 
   const [selected, setSelected] = useState<Reserva | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -49,6 +49,20 @@ export default function MyAppointments() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalType, setResultModalType] = useState<'success' | 'error'>('success');
   const [resultModalMessage, setResultModalMessage] = useState('');
+
+  // Estados para recuperación de reservas vencidas
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
+  const [recoverReserva, setRecoverReserva] = useState<Reserva | null>(null);
+  const [recoverLoading, setRecoverLoading] = useState(false);
+  const [recargoInfo, setRecargoInfo] = useState<{
+    total_original: number;
+    porcentaje_recargo: number;
+    recargo: number;
+    total_a_pagar: number;
+  } | null>(null);
+  const [showRecoverSchedule, setShowRecoverSchedule] = useState(false);
+  const [recoverDate, setRecoverDate] = useState('');
+  const [recoverTime, setRecoverTime] = useState('');
 
   const fetchReservations = async () => {
     console.log('--- Iniciando fetchReservations ---');
@@ -101,16 +115,19 @@ export default function MyAppointments() {
   }, []);
 
   const sections = useMemo(() => {
-    // Incluir 'en_proceso' en próximas y ambas variantes de completado en historial
+    // Incluir 'en_proceso' en próximas, vencidas en su propia tab, y ambas variantes de completado en historial
     const upcoming = appointments.filter(a => 
       a.estado === 'pendiente' || a.estado === 'confirmada' || a.estado === 'en_proceso'
     );
+    const expired = appointments.filter(a => a.estado === 'vencida');
     const past = appointments.filter(a => 
       a.estado === 'completada' || a.estado === 'completado' || a.estado === 'cancelada'
     );
     
     if (activeTab === 'upcoming') {
       return upcoming.length > 0 ? [{ title: 'Próximas', data: upcoming }] : [];
+    } else if (activeTab === 'expired') {
+      return expired.length > 0 ? [{ title: 'Vencidas', data: expired }] : [];
     } else {
       return past.length > 0 ? [{ title: 'Historial', data: past }] : [];
     }
@@ -386,6 +403,122 @@ export default function MyAppointments() {
     }
   };
 
+  // ========== FUNCIONES PARA RECUPERAR RESERVAS VENCIDAS ==========
+  
+  // Iniciar proceso de recuperación de reserva vencida
+  const handleRecoverExpired = async (reserva: Reserva) => {
+    try {
+      setRecoverLoading(true);
+      const user = await getUser();
+      if (!user) {
+        Alert.alert('Error', 'No se pudo obtener información del usuario');
+        return;
+      }
+
+      console.log('[RECOVER] Calculando recargo para reserva:', reserva.id_reserva);
+      
+      const response = await calcularRecargoRecuperacion(reserva.id_reserva, user.id);
+      
+      if (response.success && response.data) {
+        setRecargoInfo({
+          total_original: response.data.total_original,
+          porcentaje_recargo: response.data.porcentaje_recargo,
+          recargo: response.data.recargo,
+          total_a_pagar: response.data.total_a_pagar
+        });
+        setRecoverReserva(reserva);
+        setShowRecoverModal(true);
+      } else {
+        Alert.alert('Error', response.message || 'No se pudo calcular el recargo');
+      }
+    } catch (error) {
+      console.error('[RECOVER] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al procesar la solicitud');
+    } finally {
+      setRecoverLoading(false);
+    }
+  };
+
+  // Confirmar pago del recargo y mostrar selector de horarios
+  const confirmPaymentAndShowSchedule = () => {
+    if (!recoverReserva) return;
+    
+    // Generar fechas disponibles
+    const fechas = generarFechasDisponibles();
+    setAvailableDates(fechas);
+    setRecoverDate('');
+    setRecoverTime('');
+    setHorariosDisponibles([]);
+    setTodosLosHorarios([]);
+    setShowRecoverModal(false);
+    setShowRecoverSchedule(true);
+  };
+
+  // Cuando se selecciona una fecha para recuperación
+  const handleRecoverDateSelect = async (dateId: string) => {
+    setRecoverDate(dateId);
+    setRecoverTime('');
+    
+    if (recoverReserva) {
+      await cargarHorariosDisponibles(recoverReserva.empresa_id, dateId);
+    }
+  };
+
+  // Confirmar recuperación de reserva vencida
+  const confirmRecoverReservation = async () => {
+    if (!recoverDate || !recoverTime || !recoverReserva) {
+      Alert.alert('Error', 'Por favor selecciona fecha y hora');
+      return;
+    }
+
+    try {
+      setRecoverLoading(true);
+      const user = await getUser();
+      if (!user) {
+        Alert.alert('Error', 'No se pudo obtener información del usuario');
+        return;
+      }
+
+      console.log('[RECOVER] Recuperando reserva:', recoverReserva.id_reserva, 'a', recoverDate, recoverTime);
+      
+      const response = await recuperarReservaVencida(
+        recoverReserva.id_reserva,
+        recoverDate,
+        recoverTime,
+        user.id
+      );
+
+      if (response.success) {
+        setResultModalType('success');
+        setResultModalMessage(`¡Reserva recuperada! Se aplicó un recargo de $${recargoInfo?.recargo.toLocaleString() || 0}`);
+        setShowResultModal(true);
+        fetchReservations();
+      } else {
+        Alert.alert('Error', response.message || 'No se pudo recuperar la reserva');
+      }
+    } catch (error) {
+      console.error('[RECOVER] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al recuperar la reserva');
+    } finally {
+      setRecoverLoading(false);
+      setShowRecoverSchedule(false);
+      setRecoverReserva(null);
+      setRecoverDate('');
+      setRecoverTime('');
+      setRecargoInfo(null);
+    }
+  };
+
+  // Cancelar proceso de recuperación
+  const cancelRecover = () => {
+    setShowRecoverModal(false);
+    setShowRecoverSchedule(false);
+    setRecoverReserva(null);
+    setRecoverDate('');
+    setRecoverTime('');
+    setRecargoInfo(null);
+  };
+
   const getServiceIcon = (nombreServicio: string): keyof typeof Ionicons.glyphMap => {
     if (nombreServicio.toLowerCase().includes('lavado')) return 'car-outline';
     if (nombreServicio.toLowerCase().includes('desinfección')) return 'sparkles-outline';
@@ -521,10 +654,12 @@ export default function MyAppointments() {
     const isPending = item.estado === 'pendiente' || item.estado === 'confirmada' || item.estado === 'en_proceso';
     const isCompleted = item.estado === 'completada' || item.estado === 'completado';
     const isCancelled = item.estado === 'cancelada';
+    const isExpired = item.estado === 'vencida';
     
     const getStatusConfig = () => {
       if (isPending) return { bg: '#FFF8E1', color: '#F9A825', icon: 'time-outline' as const, text: 'Pendiente' };
       if (isCompleted) return { bg: '#E8F5E9', color: '#43A047', icon: 'checkmark-circle' as const, text: 'Completada' };
+      if (isExpired) return { bg: '#FFF3E0', color: '#E67E22', icon: 'alert-circle' as const, text: 'Vencida' };
       return { bg: '#FFEBEE', color: '#E53935', icon: 'close-circle' as const, text: 'Cancelada' };
     };
     
@@ -596,6 +731,27 @@ export default function MyAppointments() {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Acciones para citas vencidas - Botón de recuperar */}
+          {isExpired && (
+            <View style={styles.cardActionsRow}>
+              <TouchableOpacity 
+                style={styles.cardActionBtnRecover} 
+                onPress={() => handleRecoverExpired(item)} 
+                activeOpacity={0.7}
+                disabled={recoverLoading}
+              >
+                {recoverLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="refresh-circle-outline" size={16} color="#fff" />
+                    <Text style={styles.cardActionBtnRecoverText}>Recuperar Cita (+25%)</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -651,7 +807,7 @@ export default function MyAppointments() {
             <View style={[styles.tabIconContainer, activeTab === 'upcoming' && styles.tabIconContainerActive]}>
               <Ionicons 
                 name="calendar-outline" 
-                size={20} 
+                size={18} 
                 color={activeTab === 'upcoming' ? '#fff' : '#0C553C'} 
               />
             </View>
@@ -664,6 +820,30 @@ export default function MyAppointments() {
               </View>
             )}
           </TouchableOpacity>
+
+          {/* Nueva Tab Vencidas */}
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'expired' && styles.tabActive, activeTab === 'expired' && styles.tabExpiredActive]}
+            onPress={() => setActiveTab('expired')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.tabIconContainer, activeTab === 'expired' && styles.tabIconContainerExpired]}>
+              <Ionicons 
+                name="alert-circle-outline" 
+                size={18} 
+                color={activeTab === 'expired' ? '#fff' : '#E67E22'} 
+              />
+            </View>
+            <Text style={[styles.tabText, activeTab === 'expired' && styles.tabTextActive, { color: activeTab === 'expired' ? '#fff' : '#E67E22' }]}>Vencidas</Text>
+            {appointments.filter(a => a.estado === 'vencida').length > 0 && (
+              <View style={[styles.tabBadge, { backgroundColor: activeTab === 'expired' ? 'rgba(255,255,255,0.3)' : '#E67E22' }]}>
+                <Text style={[styles.tabBadgeText, { color: '#fff' }]}>
+                  {appointments.filter(a => a.estado === 'vencida').length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'history' && styles.tabActive]}
             onPress={() => setActiveTab('history')}
@@ -672,7 +852,7 @@ export default function MyAppointments() {
             <View style={[styles.tabIconContainer, activeTab === 'history' && styles.tabIconContainerActive]}>
               <Ionicons 
                 name="checkmark-done-outline" 
-                size={20} 
+                size={18} 
                 color={activeTab === 'history' ? '#fff' : '#0C553C'} 
               />
             </View>
@@ -685,6 +865,8 @@ export default function MyAppointments() {
             <Text style={styles.emptyText}>
               {activeTab === 'upcoming' 
                 ? 'No tienes citas próximas' 
+                : activeTab === 'expired'
+                ? 'No tienes citas vencidas'
                 : 'No tienes historial de citas'}
             </Text>
             {activeTab === 'upcoming' && (
@@ -1463,6 +1645,190 @@ export default function MyAppointments() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Confirmación de Pago para Recuperar Reserva Vencida */}
+      <Modal visible={showRecoverModal} animationType="fade" transparent>
+        <View style={styles.resultModalOverlay}>
+          <View style={[styles.resultModalCard, { paddingHorizontal: 24 }]}>
+            {/* Icono */}
+            <View style={[styles.resultModalIconContainer, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="alert-circle" size={60} color="#E67E22" />
+            </View>
+
+            {/* Título */}
+            <Text style={[styles.resultModalTitle, { color: '#E67E22' }]}>
+              Recuperar Cita Vencida
+            </Text>
+
+            {/* Información del recargo */}
+            {recargoInfo && (
+              <View style={styles.recoverInfoContainer}>
+                <View style={styles.recoverInfoRow}>
+                  <Text style={styles.recoverInfoLabel}>Valor original:</Text>
+                  <Text style={styles.recoverInfoValue}>${recargoInfo.total_original.toLocaleString()}</Text>
+                </View>
+                <View style={styles.recoverInfoRow}>
+                  <Text style={styles.recoverInfoLabel}>Recargo ({recargoInfo.porcentaje_recargo}%):</Text>
+                  <Text style={[styles.recoverInfoValue, { color: '#E67E22' }]}>+${recargoInfo.recargo.toLocaleString()}</Text>
+                </View>
+                <View style={styles.recoverInfoDivider} />
+                <View style={styles.recoverInfoRow}>
+                  <Text style={[styles.recoverInfoLabel, { fontWeight: '700' }]}>Total a pagar:</Text>
+                  <Text style={[styles.recoverInfoValue, { fontWeight: '700', fontSize: 18 }]}>${recargoInfo.total_a_pagar.toLocaleString()}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Mensaje */}
+            <Text style={[styles.resultModalMessage, { textAlign: 'center', marginTop: 12 }]}>
+              Para recuperar esta cita debes pagar el 25% del valor original como recargo. Luego podrás elegir una nueva fecha y hora.
+            </Text>
+
+            {/* Botones */}
+            <View style={styles.recoverModalButtons}>
+              <TouchableOpacity 
+                style={[styles.resultModalBtn, { backgroundColor: '#f5f5f5', flex: 1 }]}
+                onPress={cancelRecover}
+              >
+                <Text style={[styles.resultModalBtnText, { color: '#666' }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.resultModalBtn, { backgroundColor: '#E67E22', flex: 1 }]}
+                onPress={confirmPaymentAndShowSchedule}
+              >
+                <Text style={styles.resultModalBtnText}>Pagar y Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para seleccionar nueva fecha y hora después de pagar */}
+      <Modal visible={showRecoverSchedule} animationType="slide" transparent>
+        <View style={styles.rescheduleModalOverlay}>
+          <View style={styles.rescheduleModalCard}>
+            {/* Header */}
+            <View style={styles.rescheduleModalHeader}>
+              <Text style={styles.rescheduleModalTitle}>Seleccionar Nueva Fecha</Text>
+              <TouchableOpacity onPress={cancelRecover} style={styles.rescheduleModalClose}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Info de recargo pagado */}
+            {recargoInfo && (
+              <View style={styles.recoverPaidBanner}>
+                <Ionicons name="checkmark-circle" size={20} color="#059669" />
+                <Text style={styles.recoverPaidText}>Recargo de ${recargoInfo.recargo.toLocaleString()} confirmado</Text>
+              </View>
+            )}
+
+            <ScrollView style={styles.rescheduleModalContent} showsVerticalScrollIndicator={false}>
+              {/* Selector de fecha */}
+              <Text style={styles.rescheduleLabel}>Selecciona el día:</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.dateScrollContainer}
+                contentContainerStyle={styles.dateScrollContent}
+              >
+                {availableDates.map((fecha) => (
+                  <TouchableOpacity
+                    key={fecha.id}
+                    style={[
+                      styles.dateCard,
+                      recoverDate === fecha.id && styles.dateCardSelected
+                    ]}
+                    onPress={() => handleRecoverDateSelect(fecha.id)}
+                    activeOpacity={0.7}
+                  >
+                    {fecha.isToday && <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>HOY</Text></View>}
+                    {fecha.isTomorrow && <View style={styles.tomorrowBadge}><Text style={styles.tomorrowBadgeText}>MAÑANA</Text></View>}
+                    <Text style={[styles.dateDayName, recoverDate === fecha.id && styles.dateDayNameSelected]}>{fecha.dayName}</Text>
+                    <Text style={[styles.dateDayNum, recoverDate === fecha.id && styles.dateDayNumSelected]}>{fecha.dayNum}</Text>
+                    <Text style={[styles.dateMonth, recoverDate === fecha.id && styles.dateMonthSelected]}>{fecha.month}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Selector de hora */}
+              {recoverDate && (
+                <>
+                  <Text style={[styles.rescheduleLabel, { marginTop: 20 }]}>Selecciona la hora:</Text>
+                  {loadingHorarios ? (
+                    <View style={styles.loadingHorariosContainer}>
+                      <ActivityIndicator size="small" color="#0C553C" />
+                      <Text style={styles.loadingHorariosText}>Cargando horarios...</Text>
+                    </View>
+                  ) : todosLosHorarios.length > 0 ? (
+                    <View style={styles.horariosGrid}>
+                      {todosLosHorarios.map((horario, index) => {
+                        const isDisponible = horario.disponible && !horario.ocupado && !horario.pasado;
+                        const isSelected = recoverTime === horario.hora;
+                        
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={[
+                              styles.horarioBtn,
+                              isSelected && styles.horarioBtnSelected,
+                              !isDisponible && styles.horarioBtnDisabled
+                            ]}
+                            onPress={() => isDisponible && setRecoverTime(horario.hora)}
+                            disabled={!isDisponible}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[
+                              styles.horarioBtnText,
+                              isSelected && styles.horarioBtnTextSelected,
+                              !isDisponible && styles.horarioBtnTextDisabled
+                            ]}>
+                              {horario.hora.substring(0, 5)}
+                            </Text>
+                            {horario.ocupado && (
+                              <Text style={styles.horarioOcupadoText}>Ocupado</Text>
+                            )}
+                            {horario.pasado && (
+                              <Text style={styles.horarioPasadoText}>Pasado</Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <View style={styles.noHorariosContainer}>
+                      <Ionicons name="calendar-outline" size={40} color="#ccc" />
+                      <Text style={styles.noHorariosText}>No hay horarios disponibles para esta fecha</Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </ScrollView>
+
+            {/* Botón de confirmar */}
+            <View style={styles.rescheduleModalFooter}>
+              <TouchableOpacity
+                style={[
+                  styles.rescheduleConfirmBtn,
+                  { backgroundColor: '#E67E22' },
+                  (!recoverDate || !recoverTime) && styles.rescheduleConfirmBtnDisabled
+                ]}
+                onPress={confirmRecoverReservation}
+                disabled={!recoverDate || !recoverTime || recoverLoading}
+              >
+                {recoverLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.rescheduleConfirmBtnText}>Confirmar Nueva Cita</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1578,8 +1944,14 @@ const styles = StyleSheet.create({
   tabIconContainerActive: {
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
+  tabIconContainerExpired: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  tabExpiredActive: {
+    backgroundColor: '#E67E22',
+  },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#666',
   },
@@ -1753,6 +2125,23 @@ const styles = StyleSheet.create({
   cardActionBtnCancelText: {
     color: '#E53935',
     fontSize: 12,
+    fontWeight: '700',
+  },
+  // Estilos para botón de recuperar reserva vencida
+  cardActionBtnRecover: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E67E22',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cardActionBtnRecoverText: {
+    color: '#fff',
+    fontSize: 13,
     fontWeight: '700',
   },
   
@@ -2857,5 +3246,229 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-});
 
+  // ============================================
+  // ESTILOS PARA RECUPERACIÓN DE RESERVAS VENCIDAS
+  // ============================================
+  recoverInfoContainer: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
+  },
+  recoverInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  recoverInfoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  recoverInfoValue: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  recoverInfoDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
+  },
+  recoverModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+    width: '100%',
+  },
+  recoverPaidBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginHorizontal: 20,
+    marginTop: 10,
+    gap: 8,
+  },
+  recoverPaidText: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
+  },
+
+  // Estilos adicionales para modal de recuperación
+  rescheduleModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  rescheduleModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  rescheduleModalClose: {
+    padding: 4,
+  },
+  rescheduleModalContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  rescheduleModalFooter: {
+    padding: 20,
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  rescheduleLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  dateScrollContainer: {
+    marginBottom: 8,
+  },
+  dateScrollContent: {
+    paddingRight: 20,
+    gap: 10,
+  },
+  dateCard: {
+    width: 70,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dateCardSelected: {
+    backgroundColor: '#0C553C',
+    borderColor: '#0C553C',
+  },
+  todayBadge: {
+    position: 'absolute',
+    top: -8,
+    backgroundColor: '#059669',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  todayBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  tomorrowBadge: {
+    position: 'absolute',
+    top: -8,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tomorrowBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  dateDayName: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  dateDayNameSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  dateDayNum: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  dateDayNumSelected: {
+    color: '#fff',
+  },
+  dateMonth: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  dateMonthSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  loadingHorariosContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    gap: 10,
+  },
+  loadingHorariosText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  horariosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+  },
+  horarioBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  horarioBtnSelected: {
+    backgroundColor: '#0C553C',
+    borderColor: '#0C553C',
+  },
+  horarioBtnDisabled: {
+    backgroundColor: '#F3F4F6',
+    opacity: 0.5,
+  },
+  horarioBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  horarioBtnTextSelected: {
+    color: '#fff',
+  },
+  horarioBtnTextDisabled: {
+    color: '#9CA3AF',
+  },
+  horarioOcupadoText: {
+    fontSize: 10,
+    color: '#EF4444',
+    marginTop: 2,
+  },
+  horarioPasadoText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  noHorariosContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noHorariosText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+});

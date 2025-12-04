@@ -267,15 +267,18 @@ export interface Reserva {
     id_reserva: number;
     fecha: string;
     hora: string;
-    // Estados según modelo Django: pendiente, completado, cancelada
+    // Estados según modelo Django: pendiente, completado, cancelada, vencida
     // También incluimos estados adicionales del backend Node: confirmada, en_proceso, completada
-    estado: 'pendiente' | 'confirmada' | 'completada' | 'completado' | 'cancelada' | 'en_proceso';
+    estado: 'pendiente' | 'confirmada' | 'completada' | 'completado' | 'cancelada' | 'en_proceso' | 'vencida';
     empresa_id: number;
     usuario_id: number;
     nombre_empresa: string;
     direccion_empresa: string;
     total: number;
     servicios: any[];
+    numero_reserva?: string;
+    fue_recuperada?: boolean;
+    recargo_recuperacion?: number;
 }
 
 export interface Servicio {
@@ -418,6 +421,51 @@ export const reagendarReserva = async (
             nueva_fecha: nuevaFecha, 
             nueva_hora: nuevaHora,
             usuario_id: usuarioId 
+        }),
+    });
+};
+
+/**
+ * Calcular el recargo para recuperar una reserva vencida
+ */
+export const calcularRecargoRecuperacion = async (
+    reservaId: number,
+    usuarioId: number
+): Promise<ApiResponse<{
+    reserva: {
+        id_reserva: number;
+        numero_reserva: string;
+        empresa_id: number;
+        nombre_empresa: string;
+        fecha_original: string;
+        hora_original: string;
+    };
+    total_original: number;
+    porcentaje_recargo: number;
+    recargo: number;
+    total_a_pagar: number;
+}>> => {
+    return fetchApi(`/reservas/recargo-recuperacion/${reservaId}?usuario_id=${usuarioId}`, {
+        method: 'GET',
+    });
+};
+
+/**
+ * Recuperar una reserva vencida (pagar recargo y reagendar)
+ */
+export const recuperarReservaVencida = async (
+    reservaId: number,
+    nuevaFecha: string,
+    nuevaHora: string,
+    usuarioId: number
+): Promise<ApiResponse<{ reserva: any; recargo_aplicado: number; total_original: number }>> => {
+    return fetchApi(`/reservas/recuperar-vencida/${reservaId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            nueva_fecha: nuevaFecha,
+            nueva_hora: nuevaHora,
+            usuario_id: usuarioId,
+            pago_confirmado: true
         }),
     });
 };
@@ -1197,6 +1245,8 @@ export default {
     crearReserva,
     cancelarReserva,
     reagendarReserva,
+    calcularRecargoRecuperacion,
+    recuperarReservaVencida,
     // Funciones de planes y suscripciones
     getPlanesDisponibles,
     getPlanDetalle,
