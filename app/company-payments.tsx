@@ -33,10 +33,13 @@ export default function CompanyPayments() {
     try {
       if (!append) setError(null);
       
+      console.log('[PAGOS] Fetching pagos, tab:', activeTab, 'page:', page);
       const response = await getMisReservasPagos(activeTab, undefined, undefined, page);
+      console.log('[PAGOS] Response:', JSON.stringify(response, null, 2));
 
       if (response.success && response.data) {
         const data = response.data;
+        console.log('[PAGOS] Data received, reservas count:', data.reservas?.length);
         if (append) {
           setReservas(prev => [...prev, ...data.reservas]);
         } else {
@@ -49,11 +52,12 @@ export default function CompanyPayments() {
           total: data.pagination.total
         });
       } else {
+        console.log('[PAGOS] Error in response:', response.message);
         setError(response.message || 'Error al cargar los pagos');
       }
 
     } catch (err) {
-      console.error('Error fetching payments:', err);
+      console.error('[PAGOS] Error fetching payments:', err);
       setError('Error al cargar la información de pagos');
     } finally {
       setLoading(false);
@@ -175,13 +179,11 @@ export default function CompanyPayments() {
         </View>
       </View>
 
-      {/* Fecha de pago si está pagada */}
-      {item.pagado_empresa && item.fecha_pago_empresa && (
+      {/* Indicador de pago si está pagada */}
+      {item.pagado_empresa && (
         <View style={styles.fechaPagoContainer}>
           <Ionicons name="checkmark-circle" size={14} color="#28a745" />
-          <Text style={styles.fechaPagoText}>
-            Pagado el {formatDate(item.fecha_pago_empresa)}
-          </Text>
+          <Text style={styles.fechaPagoText}>Pago realizado</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -457,11 +459,11 @@ export default function CompanyPayments() {
                 </View>
 
                 {/* Fecha de pago si aplica */}
-                {reservaDetalle.pagado_empresa && reservaDetalle.fecha_pago_empresa && (
+                {reservaDetalle.pagado_empresa && (
                   <View style={styles.detallePagadoContainer}>
                     <Ionicons name="checkmark-circle" size={20} color="#28a745" />
                     <Text style={styles.detallePagadoText}>
-                      Pago recibido el {formatDate(reservaDetalle.fecha_pago_empresa)}
+                      Pago realizado a tu cuenta
                     </Text>
                   </View>
                 )}
