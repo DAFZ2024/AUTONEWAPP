@@ -163,7 +163,7 @@ export default function CompanyAnalytics() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0C553C" />
+        <ActivityIndicator size="large" color="#FF6B35" />
         <Text style={styles.loadingText}>Cargando analíticas...</Text>
       </View>
     );
@@ -176,7 +176,7 @@ export default function CompanyAnalytics() {
     <ScrollView 
       contentContainerStyle={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0C553C']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
       }
     >
       <View style={styles.header}>
@@ -215,28 +215,28 @@ export default function CompanyAnalytics() {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="bar-chart-outline" size={24} color="#0C553C" />
+            <Ionicons name="bar-chart-outline" size={24} color="#FF6B35" />
           </View>
           <Text style={styles.statValue}>{data?.totalReservas || 0}</Text>
           <Text style={styles.statLabel}>Reservas Totales</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="cash-outline" size={24} color="#0C553C" />
+            <Ionicons name="cash-outline" size={24} color="#FF6B35" />
           </View>
           <Text style={styles.statValue}>{formatCurrencyShort(data?.ingresosTotales || 0)}</Text>
           <Text style={styles.statLabel}>Ingresos Totales</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="checkmark-circle-outline" size={24} color="#0C553C" />
+            <Ionicons name="checkmark-circle-outline" size={24} color="#FF6B35" />
           </View>
           <Text style={styles.statValue}>{data?.completadas || 0}</Text>
           <Text style={styles.statLabel}>Completadas</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="trending-up-outline" size={24} color="#0C553C" />
+            <Ionicons name="trending-up-outline" size={24} color="#FF6B35" />
           </View>
           <Text style={styles.statValue}>{data?.tasaExito || 0}%</Text>
           <Text style={styles.statLabel}>Tasa de Éxito</Text>
@@ -246,7 +246,7 @@ export default function CompanyAnalytics() {
       <View style={styles.chartSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="wallet-outline" size={20} color="#0C553C" />
+            <Ionicons name="wallet-outline" size={20} color="#FF6B35" />
             <Text style={styles.sectionTitle}>Ingresos Mensuales</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Últimos 6 meses</Text>
@@ -257,7 +257,7 @@ export default function CompanyAnalytics() {
       <View style={styles.chartSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="calendar-outline" size={20} color="#0C553C" />
+            <Ionicons name="calendar-outline" size={20} color="#FF6B35" />
             <Text style={styles.sectionTitle}>Reservas Diarias</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Esta semana</Text>
@@ -268,7 +268,7 @@ export default function CompanyAnalytics() {
       <View style={styles.servicesSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="star-outline" size={20} color="#0C553C" />
+            <Ionicons name="star-outline" size={20} color="#FF6B35" />
             <Text style={styles.sectionTitle}>Servicios Más Populares</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Top 4 del período</Text>
@@ -298,34 +298,34 @@ export default function CompanyAnalytics() {
 
       <View style={styles.summarySection}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="document-text-outline" size={20} color="#0C553C" />
+          <Ionicons name="document-text-outline" size={20} color="#FF6B35" />
           <Text style={styles.sectionTitle}>Resumen Ejecutivo</Text>
         </View>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#0C553C" />
+              <Ionicons name="ellipse" size={6} color="#FF6B35" />
               <Text style={styles.summaryLabel}>Total de reservas:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.totalReservas || 0}</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#0C553C" />
+              <Ionicons name="ellipse" size={6} color="#FF6B35" />
               <Text style={styles.summaryLabel}>Ingresos generados:</Text>
             </View>
             <Text style={styles.summaryValue}>{formatCurrency(data?.ingresosTotales || 0)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#0C553C" />
+              <Ionicons name="ellipse" size={6} color="#FF6B35" />
               <Text style={styles.summaryLabel}>Tasa de cancelación:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.tasaCancelacion || 0}%</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#0C553C" />
+              <Ionicons name="ellipse" size={6} color="#FF6B35" />
               <Text style={styles.summaryLabel}>Servicio más popular:</Text>
             </View>
             <Text style={styles.summaryValue}>
@@ -334,7 +334,7 @@ export default function CompanyAnalytics() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#0C553C" />
+              <Ionicons name="ellipse" size={6} color="#FF6B35" />
               <Text style={styles.summaryLabel}>Reservas pendientes:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.pendientes || 0}</Text>
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   retryButton: {
-    backgroundColor: '#0C553C',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   header: { 
-    backgroundColor: '#0C553C', 
+    backgroundColor: '#FF6B35', 
     paddingTop: 50, 
     paddingBottom: 20, 
     flexDirection: 'row', 
@@ -450,8 +450,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   periodActive: { 
-    backgroundColor: '#0C553C',
-    shadowColor: '#0C553C',
+    backgroundColor: '#FF6B35',
+    shadowColor: '#FF6B35',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -481,19 +481,19 @@ const styles = StyleSheet.create({
     width: '48%', 
     margin: '1%', 
     alignItems: 'center', 
-    shadowColor: '#0C553C',
+    shadowColor: '#FF6B35',
     shadowOffset: { width: 0, height: 3 }, 
     shadowOpacity: 0.12, 
     shadowRadius: 8, 
     elevation: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#0C553C',
+    borderLeftColor: '#FF6B35',
   },
   statIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   statValue: { 
     fontSize: 24, 
     fontWeight: 'bold', 
-    color: '#0C553C',
+    color: '#FF6B35',
     marginTop: 4,
   },
   statLabel: { 
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   sectionTitle: { 
     fontSize: 18, 
     fontWeight: 'bold', 
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
   barValue: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0C553C',
+    color: '#FF6B35',
     marginBottom: 6,
   },
   bar: { 
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   },
   barFill: { 
     width: '100%', 
-    backgroundColor: '#0C553C', 
+    backgroundColor: '#FF6B35', 
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     minHeight: 4,
@@ -616,17 +616,17 @@ const styles = StyleSheet.create({
     top: -25,
     fontSize: 11,
     fontWeight: '600',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   lineDot: { 
     width: 12, 
     height: 12, 
-    backgroundColor: '#0C553C', 
+    backgroundColor: '#FF6B35', 
     borderRadius: 6, 
     position: 'absolute',
     borderWidth: 3,
     borderColor: '#fff',
-    shadowColor: '#0C553C',
+    shadowColor: '#FF6B35',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -636,11 +636,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.2)',
   },
   lineSegment: { 
     height: 3, 
-    backgroundColor: '#0C553C', 
+    backgroundColor: '#FF6B35', 
     position: 'absolute', 
     left: 6,
   },
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0C553C',
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -707,14 +707,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   serviceRevenueContainer: {
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
   },
   serviceRevenue: { 
     fontSize: 13, 
-    color: '#0C553C', 
+    color: '#FF6B35', 
     fontWeight: '700',
   },
   emptyState: {
@@ -741,11 +741,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   summaryCard: {
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#FFF8F5',
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#0C553C',
+    borderLeftColor: '#FF6B35',
     marginTop: 16,
   },
   summaryRow: {
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 14,
-    color: '#0C553C',
+    color: '#FF6B35',
     fontWeight: '700',
   },
 });

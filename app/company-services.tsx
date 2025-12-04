@@ -193,7 +193,7 @@ export default function CompanyServicesScreen() {
     <View key={servicio.id_servicio} style={styles.servicioCard}>
       {/* Barra de estado superior */}
       <LinearGradient
-        colors={['#10b981', '#059669']}
+        colors={['#FF6B35', '#FF8E53']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.cardStatusBar}
@@ -203,7 +203,7 @@ export default function CompanyServicesScreen() {
         <View style={styles.servicioHeader}>
           <View style={styles.servicioIconContainer}>
             <LinearGradient
-              colors={['#10b981', '#059669']}
+              colors={['#FF6B35', '#FF8E53']}
               style={styles.servicioIconGradient}
             >
               <Ionicons name="checkmark-circle" size={24} color="#fff" />
@@ -214,7 +214,7 @@ export default function CompanyServicesScreen() {
             <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
           </View>
           <View style={styles.activoBadge}>
-            <Ionicons name="shield-checkmark" size={12} color="#059669" />
+            <Ionicons name="shield-checkmark" size={12} color="#FF6B35" />
             <Text style={styles.activoBadgeText}>Activo</Text>
           </View>
         </View>
@@ -226,7 +226,7 @@ export default function CompanyServicesScreen() {
         <View style={styles.servicioStats}>
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <Ionicons name="calendar-outline" size={14} color="#3b82f6" />
+              <Ionicons name="calendar-outline" size={14} color="#FF6B35" />
             </View>
             <View>
               <Text style={styles.statValue}>{servicio.total_reservas || 0}</Text>
@@ -236,7 +236,7 @@ export default function CompanyServicesScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <Ionicons name="cash-outline" size={14} color="#10b981" />
+              <Ionicons name="cash-outline" size={14} color="#FFB347" />
             </View>
             <View>
               <Text style={styles.statValue}>{formatCurrency(Number(servicio.ingresos_generados) || 0)}</Text>
@@ -258,7 +258,7 @@ export default function CompanyServicesScreen() {
       <View key={servicio.id_servicio} style={styles.servicioCard}>
         {/* Barra de estado superior */}
         <LinearGradient
-          colors={['#f59e0b', '#d97706']}
+          colors={['#FFB347', '#FF8E53']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.cardStatusBar}
@@ -268,7 +268,7 @@ export default function CompanyServicesScreen() {
           <View style={styles.servicioHeader}>
             <View style={styles.servicioIconContainer}>
               <LinearGradient
-                colors={['#f59e0b', '#d97706']}
+                colors={['#FFB347', '#FF8E53']}
                 style={styles.servicioIconGradient}
               >
                 <Ionicons name="add-circle" size={24} color="#fff" />
@@ -280,7 +280,7 @@ export default function CompanyServicesScreen() {
             </View>
             {tieneSolicitudPendiente && (
               <View style={styles.pendingBadge}>
-                <Ionicons name="hourglass" size={12} color="#f59e0b" />
+                <Ionicons name="hourglass" size={12} color="#FF8E53" />
                 <Text style={styles.pendingBadgeText}>Pendiente</Text>
               </View>
             )}
@@ -303,7 +303,7 @@ export default function CompanyServicesScreen() {
               </View>
             ) : (
               <LinearGradient
-                colors={['#0C553C', '#0A4832']}
+                colors={['#FF6B35', '#FF8E53']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.solicitarBtnGradient}
@@ -393,7 +393,7 @@ export default function CompanyServicesScreen() {
     return (
       <View style={styles.loadingContainer}>
         <LinearGradient
-          colors={['#0C553C', '#0A4832', '#083D2A']}
+          colors={['#FF6B35', '#FF8E53', '#FFB347']}
           style={styles.loadingGradient}
         >
           <View style={styles.loadingContent}>
@@ -414,10 +414,10 @@ export default function CompanyServicesScreen() {
   const solicitudesPendientes = solicitudes.filter(s => s.estado === 'pendiente').length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F0F4F3' }}>
+    <View style={{ flex: 1, backgroundColor: '#FFF8F5' }}>
       {/* Header Premium con Gradiente */}
       <LinearGradient
-        colors={['#0C553C', '#0A4832', '#083D2A']}
+        colors={['#FF6B35', '#FF8E53', '#FFB347']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -436,7 +436,7 @@ export default function CompanyServicesScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.backButtonCircle}>
-                <Ionicons name="arrow-back" size={20} color="#0C553C" />
+                <Ionicons name="arrow-back" size={20} color="#FF6B35" />
               </View>
             </TouchableOpacity>
             
@@ -501,14 +501,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'asignados' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              colors={activeTab === 'asignados' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'asignados' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="checkmark-circle"
                   size={18}
-                  color={activeTab === 'asignados' ? '#fff' : '#0C553C'}
+                  color={activeTab === 'asignados' ? '#fff' : '#FF6B35'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'asignados' && styles.tabTextActive]}>
@@ -528,14 +528,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'disponibles' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              colors={activeTab === 'disponibles' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'disponibles' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="add-circle"
                   size={18}
-                  color={activeTab === 'disponibles' ? '#fff' : '#f59e0b'}
+                  color={activeTab === 'disponibles' ? '#fff' : '#FFB347'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'disponibles' && styles.tabTextActive]}>
@@ -555,14 +555,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'solicitudes' ? ['#0C553C', '#0A4832'] : ['#fff', '#fff']}
+              colors={activeTab === 'solicitudes' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'solicitudes' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="document-text"
                   size={18}
-                  color={activeTab === 'solicitudes' ? '#fff' : '#3b82f6'}
+                  color={activeTab === 'solicitudes' ? '#fff' : '#FF6B35'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'solicitudes' && styles.tabTextActive]}>
@@ -590,7 +590,7 @@ export default function CompanyServicesScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0C553C']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
         }
       >
         {activeTab === 'asignados' && (
@@ -626,7 +626,7 @@ export default function CompanyServicesScreen() {
             ) : (
               <>
                 <View style={styles.infoBox}>
-                  <Ionicons name="information-circle" size={20} color="#0C553C" />
+                  <Ionicons name="information-circle" size={20} color="#FF6B35" />
                   <Text style={styles.infoText}>
                     Solicita nuevos servicios para ampliar tu oferta. Las solicitudes serán
                     revisadas por el administrador.
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     minWidth: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   tabBadgeTextActive: {
     color: '#fff',
@@ -993,17 +993,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     padding: 14,
     borderRadius: 12,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#0C553C',
+    borderLeftColor: '#FF6B35',
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#0C553C',
+    color: '#FF6B35',
     lineHeight: 20,
   },
 
@@ -1051,35 +1051,35 @@ const styles = StyleSheet.create({
   },
   servicioPrecio: {
     fontSize: 15,
-    color: '#0C553C',
+    color: '#FF6B35',
     fontWeight: '700',
   },
   activoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
   },
   activoBadgeText: {
     fontSize: 11,
-    color: '#059669',
+    color: '#FF6B35',
     fontWeight: '700',
   },
   pendingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(255, 179, 71, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
   },
   pendingBadgeText: {
     fontSize: 11,
-    color: '#D97706',
+    color: '#FF8E53',
     fontWeight: '700',
   },
   servicioDescripcion: {
@@ -1105,7 +1105,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1321,7 +1321,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   servicioPreview: {
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     padding: 16,
     borderRadius: 14,
     marginBottom: 20,
@@ -1332,12 +1332,12 @@ const styles = StyleSheet.create({
   servicioPreviewNombre: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   servicioPreviewPrecio: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   formGroup: {
     marginBottom: 16,
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#0C553C',
+    backgroundColor: '#FF6B35',
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 10,

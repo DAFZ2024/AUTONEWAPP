@@ -112,7 +112,7 @@ export default function CompanyPayments() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0C553C" />
+        <ActivityIndicator size="large" color="#FF6B35" />
         <Text style={styles.loadingText}>Cargando pagos...</Text>
       </View>
     );
@@ -193,7 +193,7 @@ export default function CompanyPayments() {
     <View style={styles.container}>
       {/* Header Premium */}
       <LinearGradient
-        colors={['#0C553C', '#0A4832', '#083D2A']}
+        colors={['#FF6B35', '#FF8E53', '#FFB347']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -204,7 +204,7 @@ export default function CompanyPayments() {
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <View style={styles.backButtonCircle}>
-              <Ionicons name="arrow-back" size={20} color="#0C553C" />
+              <Ionicons name="arrow-back" size={20} color="#FF6B35" />
             </View>
           </TouchableOpacity>
           
@@ -255,7 +255,7 @@ export default function CompanyPayments() {
 
       {/* Info de comisión */}
       <View style={styles.comisionInfo}>
-        <Ionicons name="information-circle-outline" size={16} color="#0C553C" />
+        <Ionicons name="information-circle-outline" size={16} color="#FF6B35" />
         <Text style={styles.comisionText}>
           Recibes el <Text style={styles.comisionBold}>88%</Text> de cada reserva completada. La comisión de la plataforma es del 12%.
         </Text>
@@ -325,14 +325,14 @@ export default function CompanyPayments() {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0C553C']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#0C553C" />
+              <ActivityIndicator size="small" color="#FF6B35" />
             </View>
           ) : null
         }
@@ -495,13 +495,13 @@ export default function CompanyPayments() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7F6',
+    backgroundColor: '#FFF8F5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F7F6',
+    backgroundColor: '#FFF8F5',
   },
   loadingText: {
     marginTop: 10,
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
   comisionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5F0',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 12,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   comisionText: {
     flex: 1,
     fontSize: 12,
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   comisionBold: {
     fontWeight: 'bold',
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   retryButton: {
-    backgroundColor: '#0C553C',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -829,12 +829,12 @@ const styles = StyleSheet.create({
   montoLabelTotal: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   montoValueTotal: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   fechaPagoContainer: {
     flexDirection: 'row',
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   detalleNumero: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   detalleBadge: {
     paddingHorizontal: 12,
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
   servicioPrecio: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   detalleSeccionPago: {
     backgroundColor: '#F8F9FA',
@@ -985,12 +985,12 @@ const styles = StyleSheet.create({
   pagoLabelTotal: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   pagoValueTotal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#0C553C',
+    color: '#FF6B35',
   },
   detallePagadoContainer: {
     flexDirection: 'row',
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalCloseButton: {
-    backgroundColor: '#0C553C',
+    backgroundColor: '#FF6B35',
     margin: 20,
     padding: 16,
     borderRadius: 12,
