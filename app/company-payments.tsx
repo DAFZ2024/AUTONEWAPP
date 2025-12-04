@@ -97,12 +97,24 @@ export default function CompanyPayments() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('es-CO', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    if (!dateStr) return '-';
+    try {
+      // Extraer solo la parte de la fecha si viene con hora
+      const datePart = dateStr.split('T')[0];
+      const date = new Date(datePart + 'T00:00:00');
+      
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+      
+      return date.toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return '-';
+    }
   };
 
   const formatTime = (timeStr: string) => {
@@ -112,7 +124,7 @@ export default function CompanyPayments() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#CC5F2A" />
         <Text style={styles.loadingText}>Cargando pagos...</Text>
       </View>
     );
@@ -153,28 +165,12 @@ export default function CompanyPayments() {
           <Ionicons name="calendar-outline" size={14} color="#666" />
           <Text style={styles.infoText}>{formatDate(item.fecha)} • {formatTime(item.hora)}</Text>
         </View>
-        {item.servicios && item.servicios.length > 0 && (
-          <View style={styles.infoRow}>
-            <Ionicons name="car-outline" size={14} color="#666" />
-            <Text style={styles.infoText} numberOfLines={1}>
-              {item.servicios.filter(s => s.nombre).map(s => s.nombre).join(', ')}
-            </Text>
-          </View>
-        )}
       </View>
 
-      {/* Desglose de valores */}
+      {/* Valor total con comisión aplicada */}
       <View style={styles.reservaMontos}>
-        <View style={styles.montoRow}>
-          <Text style={styles.montoLabel}>Valor servicio:</Text>
-          <Text style={styles.montoValue}>{formatCurrency(item.total_original)}</Text>
-        </View>
-        <View style={styles.montoRow}>
-          <Text style={styles.montoLabel}>Comisión (12%):</Text>
-          <Text style={[styles.montoValue, styles.montoComision]}>-{formatCurrency(item.comision_plataforma)}</Text>
-        </View>
         <View style={[styles.montoRow, styles.montoRowTotal]}>
-          <Text style={styles.montoLabelTotal}>Tu pago (88%):</Text>
+          <Text style={styles.montoLabelTotal}>Total a recibir:</Text>
           <Text style={styles.montoValueTotal}>{formatCurrency(item.pago_empresa)}</Text>
         </View>
       </View>
@@ -193,7 +189,7 @@ export default function CompanyPayments() {
     <View style={styles.container}>
       {/* Header Premium */}
       <LinearGradient
-        colors={['#FF6B35', '#FF8E53', '#FFB347']}
+        colors={['#9E3A10', '#B54A1C', '#CC5F2A']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -204,7 +200,7 @@ export default function CompanyPayments() {
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <View style={styles.backButtonCircle}>
-              <Ionicons name="arrow-back" size={20} color="#FF6B35" />
+              <Ionicons name="arrow-back" size={20} color="#CC5F2A" />
             </View>
           </TouchableOpacity>
           
@@ -252,14 +248,6 @@ export default function CompanyPayments() {
           </View>
         </View>
       )}
-
-      {/* Info de comisión */}
-      <View style={styles.comisionInfo}>
-        <Ionicons name="information-circle-outline" size={16} color="#FF6B35" />
-        <Text style={styles.comisionText}>
-          Recibes el <Text style={styles.comisionBold}>88%</Text> de cada reserva completada. La comisión de la plataforma es del 12%.
-        </Text>
-      </View>
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -325,14 +313,14 @@ export default function CompanyPayments() {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#FF6B35" />
+              <ActivityIndicator size="small" color="#CC5F2A" />
             </View>
           ) : null
         }
@@ -426,34 +414,18 @@ export default function CompanyPayments() {
                   <View style={styles.detalleSection}>
                     <Text style={styles.detalleSectionTitle}>Servicios Realizados</Text>
                     {reservaDetalle.servicios.filter(s => s.nombre).map((servicio, index) => (
-                      <View key={index} style={styles.servicioRow}>
-                        <Text style={styles.servicioNombre}>{servicio.nombre}</Text>
-                        <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+                      <View key={index} style={styles.detalleRow}>
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#CC5F2A" />
+                        <Text style={styles.detalleText}>{servicio.nombre}</Text>
                       </View>
                     ))}
                   </View>
                 )}
 
-                {/* Desglose de pago */}
+                {/* Total a recibir */}
                 <View style={[styles.detalleSection, styles.detalleSeccionPago]}>
-                  <Text style={styles.detalleSectionTitle}>Desglose del Pago</Text>
-                  
                   <View style={styles.pagoRow}>
-                    <Text style={styles.pagoLabel}>Valor total del servicio</Text>
-                    <Text style={styles.pagoValue}>{formatCurrency(reservaDetalle.total_original)}</Text>
-                  </View>
-                  
-                  <View style={styles.pagoRow}>
-                    <Text style={styles.pagoLabel}>Comisión plataforma (12%)</Text>
-                    <Text style={[styles.pagoValue, styles.pagoComision]}>
-                      -{formatCurrency(reservaDetalle.comision_plataforma)}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.pagoDivider} />
-                  
-                  <View style={styles.pagoRow}>
-                    <Text style={styles.pagoLabelTotal}>Tu pago (88%)</Text>
+                    <Text style={styles.pagoLabelTotal}>Total a recibir</Text>
                     <Text style={styles.pagoValueTotal}>{formatCurrency(reservaDetalle.pago_empresa)}</Text>
                   </View>
                 </View>
@@ -630,7 +602,7 @@ const styles = StyleSheet.create({
   comisionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 12,
@@ -640,7 +612,7 @@ const styles = StyleSheet.create({
   comisionText: {
     flex: 1,
     fontSize: 12,
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   comisionBold: {
     fontWeight: 'bold',
@@ -727,7 +699,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   retryButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -829,12 +801,12 @@ const styles = StyleSheet.create({
   montoLabelTotal: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   montoValueTotal: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   fechaPagoContainer: {
     flexDirection: 'row',
@@ -909,7 +881,7 @@ const styles = StyleSheet.create({
   detalleNumero: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   detalleBadge: {
     paddingHorizontal: 12,
@@ -952,7 +924,7 @@ const styles = StyleSheet.create({
   servicioPrecio: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   detalleSeccionPago: {
     backgroundColor: '#F8F9FA',
@@ -985,12 +957,12 @@ const styles = StyleSheet.create({
   pagoLabelTotal: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   pagoValueTotal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   detallePagadoContainer: {
     flexDirection: 'row',
@@ -1023,7 +995,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalCloseButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     margin: 20,
     padding: 16,
     borderRadius: 12,

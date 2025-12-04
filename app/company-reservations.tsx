@@ -158,6 +158,14 @@ export default function CompanyReservations() {
     }).format(amount);
   };
 
+  // Constante para la comisión de la plataforma (12%)
+  const COMISION_PLATAFORMA = 0.12;
+
+  // Función para calcular el ingreso neto después de la comisión
+  const calcularIngresoNeto = (amount: number) => {
+    return amount * (1 - COMISION_PLATAFORMA);
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Sin fecha';
     
@@ -295,7 +303,7 @@ export default function CompanyReservations() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#CC5F2A" />
         <Text style={styles.loadingText}>Cargando reservas...</Text>
       </View>
     );
@@ -326,10 +334,10 @@ export default function CompanyReservations() {
           <View style={styles.cardHeader}>
             <View style={styles.serviceIconContainer}>
               <LinearGradient
-                colors={['rgba(255, 107, 53, 0.1)', 'rgba(255, 107, 53, 0.05)']}
+                colors={['rgba(204, 95, 42, 0.1)', 'rgba(204, 95, 42, 0.05)']}
                 style={styles.serviceIcon}
               >
-                <Ionicons name={getServiceIcon(item.service)} size={26} color="#FF6B35" />
+                <Ionicons name={getServiceIcon(item.service)} size={26} color="#CC5F2A" />
               </LinearGradient>
             </View>
             <View style={styles.cardTitle}>
@@ -343,7 +351,7 @@ export default function CompanyReservations() {
             </View>
             <View style={styles.priceContainer}>
               <Text style={styles.priceCurrency}>$</Text>
-              <Text style={styles.priceAmount}>{formatCurrency(item.price).replace('$', '')}</Text>
+              <Text style={styles.priceAmount}>{formatCurrency(calcularIngresoNeto(item.price)).replace('$', '')}</Text>
             </View>
           </View>
 
@@ -354,7 +362,7 @@ export default function CompanyReservations() {
           <View style={styles.cardInfoSection}>
             <View style={styles.infoCard}>
               <View style={styles.infoCardIcon}>
-                <Ionicons name="person" size={16} color="#FF6B35" />
+                <Ionicons name="person" size={16} color="#CC5F2A" />
               </View>
               <View style={styles.infoCardContent}>
                 <Text style={styles.infoCardLabel}>Cliente</Text>
@@ -370,7 +378,7 @@ export default function CompanyReservations() {
 
             <View style={styles.infoCard}>
               <View style={styles.infoCardIcon}>
-                <Ionicons name="time" size={16} color="#FF6B35" />
+                <Ionicons name="time" size={16} color="#CC5F2A" />
               </View>
               <View style={styles.infoCardContent}>
                 <Text style={styles.infoCardLabel}>Hora</Text>
@@ -387,7 +395,7 @@ export default function CompanyReservations() {
               disabled={isUpdating || loadingQR}
             >
               <LinearGradient
-                colors={['#FF6B35', '#FF8E53']}
+                colors={['#9E3A10', '#CC5F2A']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.qrButtonGradient}
@@ -433,7 +441,7 @@ export default function CompanyReservations() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF6B35', '#FF8E53', '#FFB347']}
+        colors={['#9E3A10', '#B54A1C', '#CC5F2A']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -448,7 +456,7 @@ export default function CompanyReservations() {
           <View style={styles.headerTopRow}>
             <TouchableOpacity onPress={() => router.replace('./company-dashboard')} style={styles.backButton}>
               <View style={styles.backButtonInner}>
-                <Ionicons name="arrow-back" size={18} color="#FF6B35" />
+                <Ionicons name="arrow-back" size={18} color="#CC5F2A" />
               </View>
               <Text style={styles.backButtonText}>Volver</Text>
             </TouchableOpacity>
@@ -473,7 +481,7 @@ export default function CompanyReservations() {
           <View style={styles.headerMiniStats}>
             <View style={styles.miniStatItem}>
               <View style={styles.miniStatIcon}>
-                <Ionicons name="time-outline" size={16} color="#FF6B35" />
+                <Ionicons name="time-outline" size={16} color="#CC5F2A" />
               </View>
               <View>
                 <Text style={styles.miniStatValue}>{stats.pending}</Text>
@@ -483,7 +491,7 @@ export default function CompanyReservations() {
             <View style={styles.miniStatDivider} />
             <View style={styles.miniStatItem}>
               <View style={styles.miniStatIcon}>
-                <Ionicons name="today-outline" size={16} color="#FF6B35" />
+                <Ionicons name="today-outline" size={16} color="#CC5F2A" />
               </View>
               <View>
                 <Text style={styles.miniStatValue}>{stats.today}</Text>
@@ -493,11 +501,11 @@ export default function CompanyReservations() {
             <View style={styles.miniStatDivider} />
             <View style={styles.miniStatItem}>
               <View style={styles.miniStatIcon}>
-                <Ionicons name="cash-outline" size={16} color="#FF6B35" />
+                <Ionicons name="cash-outline" size={16} color="#CC5F2A" />
               </View>
               <View>
-                <Text style={styles.miniStatValue}>{formatCurrency(stats.totalRevenue)}</Text>
-                <Text style={styles.miniStatLabel}>Ingresos</Text>
+                <Text style={styles.miniStatValue}>{formatCurrency(calcularIngresoNeto(stats.totalRevenue))}</Text>
+                <Text style={styles.miniStatLabel}>Ingresos Netos</Text>
               </View>
             </View>
           </View>
@@ -506,7 +514,7 @@ export default function CompanyReservations() {
 
       <View style={styles.filtersSection}>
         <View style={styles.filtersTitleRow}>
-          <Ionicons name="filter-outline" size={18} color="#FF6B35" />
+          <Ionicons name="filter-outline" size={18} color="#CC5F2A" />
           <Text style={styles.filtersTitle}>Filtrar por</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
@@ -532,7 +540,7 @@ export default function CompanyReservations() {
                   <Ionicons 
                     name={icon as any} 
                     size={16} 
-                    color={filter === key ? '#fff' : (isExpired ? '#E67E22' : '#FF6B35')} 
+                    color={filter === key ? '#fff' : (isExpired ? '#E67E22' : '#CC5F2A')} 
                   />
                   <Text style={[
                     styles.filterChipText, 
@@ -573,7 +581,7 @@ export default function CompanyReservations() {
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -609,7 +617,7 @@ export default function CompanyReservations() {
             {qrReserva && (
               <View style={styles.qrInfo}>
                 <View style={styles.qrInfoRow}>
-                  <Ionicons name="document-text-outline" size={18} color="#FF6B35" />
+                  <Ionicons name="document-text-outline" size={18} color="#CC5F2A" />
                   <Text style={styles.qrInfoText}>{qrReserva.numero_reserva || `Reserva #${qrReserva.id}`}</Text>
                 </View>
                 <View style={styles.qrInfoRow}>
@@ -633,7 +641,7 @@ export default function CompanyReservations() {
                   />
                 </View>
               ) : (
-                <ActivityIndicator size="large" color="#FF6B35" />
+                <ActivityIndicator size="large" color="#CC5F2A" />
               )}
             </View>
 
@@ -672,35 +680,35 @@ const styles = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 },
   headerMiniStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, alignItems: 'center', justifyContent: 'space-around', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 },
   miniStatItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  miniStatIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255, 107, 53, 0.1)', alignItems: 'center', justifyContent: 'center' },
-  miniStatValue: { fontSize: 14, fontWeight: 'bold', color: '#FF6B35' },
+  miniStatIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(204, 95, 42, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  miniStatValue: { fontSize: 14, fontWeight: 'bold', color: '#CC5F2A' },
   miniStatLabel: { fontSize: 10, color: '#666', marginTop: 1 },
   miniStatDivider: { width: 1, height: 30, backgroundColor: '#e5e7eb' },
   statsScroll: { maxHeight: 100 },
   statsContainer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16 },
   statCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginRight: 12, minWidth: 80, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  statNumber: { fontSize: 20, fontWeight: 'bold', color: '#FF6B35' },
+  statNumber: { fontSize: 20, fontWeight: 'bold', color: '#CC5F2A' },
   statLabel: { fontSize: 12, color: '#666', marginTop: 4, textAlign: 'center' },
   filtersSection: { paddingTop: 16, paddingBottom: 8 },
   filtersTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginBottom: 12 },
-  filtersTitle: { fontSize: 15, fontWeight: '600', color: '#FF6B35' },
+  filtersTitle: { fontSize: 15, fontWeight: '600', color: '#CC5F2A' },
   filtersScroll: { paddingLeft: 20 },
   filtersContainer: { flexDirection: 'row', paddingRight: 20, gap: 10 },
-  filterChip: { backgroundColor: '#fff', borderRadius: 25, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1.5, borderColor: 'rgba(255, 107, 53, 0.15)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  filterChipActive: { backgroundColor: '#FF6B35', borderColor: '#FF6B35', shadowOpacity: 0.15 },
+  filterChip: { backgroundColor: '#fff', borderRadius: 25, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1.5, borderColor: 'rgba(204, 95, 42, 0.15)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  filterChipActive: { backgroundColor: '#CC5F2A', borderColor: '#CC5F2A', shadowOpacity: 0.15 },
   filterChipContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  filterChipText: { fontSize: 13, color: '#FF6B35', fontWeight: '600' },
+  filterChipText: { fontSize: 13, color: '#CC5F2A', fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  filterChipBadge: { backgroundColor: 'rgba(255, 107, 53, 0.1)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, minWidth: 22, alignItems: 'center' },
+  filterChipBadge: { backgroundColor: 'rgba(204, 95, 42, 0.1)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, minWidth: 22, alignItems: 'center' },
   filterChipBadgeActive: { backgroundColor: 'rgba(255, 255, 255, 0.25)' },
-  filterChipBadgeText: { fontSize: 11, fontWeight: 'bold', color: '#FF6B35' },
+  filterChipBadgeText: { fontSize: 11, fontWeight: 'bold', color: '#CC5F2A' },
   filterChipBadgeTextActive: { color: '#fff' },
   listContainer: { paddingBottom: 40 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: '#f8fafc' },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1e293b' },
-  sectionCount: { fontSize: 13, color: '#FF6B35', backgroundColor: 'rgba(255, 107, 53, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, fontWeight: '600' },
+  sectionCount: { fontSize: 13, color: '#CC5F2A', backgroundColor: 'rgba(204, 95, 42, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, fontWeight: '600' },
   itemSeparator: { height: 14 },
-  reservationCard: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', shadowColor: '#FF6B35', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 5, backgroundColor: '#fff' },
+  reservationCard: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', shadowColor: '#CC5F2A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 5, backgroundColor: '#fff' },
   cardGradient: { padding: 0 },
   cardStatusBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   cardStatusIndicator: { width: 8, height: 8, borderRadius: 4 },
@@ -713,13 +721,13 @@ const styles = StyleSheet.create({
   serviceName: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 4, lineHeight: 20 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   vehicleInfo: { fontSize: 13, color: '#64748b', fontWeight: '500' },
-  priceContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(255, 107, 53, 0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
-  priceCurrency: { fontSize: 12, color: '#FF6B35', fontWeight: '600', marginTop: 2 },
-  priceAmount: { fontSize: 18, color: '#FF6B35', fontWeight: 'bold' },
+  priceContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(204, 95, 42, 0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  priceCurrency: { fontSize: 12, color: '#CC5F2A', fontWeight: '600', marginTop: 2 },
+  priceAmount: { fontSize: 18, color: '#CC5F2A', fontWeight: 'bold' },
   cardDivider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 16 },
   cardInfoSection: { flexDirection: 'row', padding: 16, gap: 12 },
   infoCard: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, gap: 10 },
-  infoCardIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255, 107, 53, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  infoCardIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(204, 95, 42, 0.1)', alignItems: 'center', justifyContent: 'center' },
   infoCardContent: { flex: 1 },
   infoCardLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
   infoCardValue: { fontSize: 14, color: '#1e293b', fontWeight: '600' },
@@ -738,22 +746,22 @@ const styles = StyleSheet.create({
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
   errorIcon: { fontSize: 48, marginBottom: 16 },
   errorText: { fontSize: 16, color: '#dc3545', textAlign: 'center', paddingHorizontal: 40, marginBottom: 16 },
-  retryButton: { backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+  retryButton: { backgroundColor: '#CC5F2A', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
   retryButtonText: { color: '#fff', fontWeight: '600' },
   qrInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 },
   // Estilos para el modal QR
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: width - 48, maxWidth: 380, alignItems: 'center' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#FF6B35' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#CC5F2A' },
   modalCloseButton: { padding: 8 },
   modalCloseText: { fontSize: 24, color: '#666' },
   qrInfo: { backgroundColor: '#FFF8F5', padding: 16, borderRadius: 12, width: '100%', marginBottom: 20 },
   qrInfoText: { fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center', marginBottom: 4 },
   qrInfoSubtext: { fontSize: 14, color: '#666', textAlign: 'center' },
-  qrContainer: { padding: 20, backgroundColor: '#fff', borderRadius: 16, borderWidth: 2, borderColor: '#FF6B35', marginBottom: 20 },
+  qrContainer: { padding: 20, backgroundColor: '#fff', borderRadius: 16, borderWidth: 2, borderColor: '#CC5F2A', marginBottom: 20 },
   qrInstruction: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 20 },
-  modalCloseMainButton: { backgroundColor: '#FF6B35', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, width: '100%' },
+  modalCloseMainButton: { backgroundColor: '#CC5F2A', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, width: '100%' },
   modalCloseMainButtonText: { color: '#fff', fontWeight: '600', fontSize: 16, textAlign: 'center' },
   // Estilos para filtro de vencidas
   filterChipExpired: { borderColor: '#E67E22', backgroundColor: '#FFF8F0' },

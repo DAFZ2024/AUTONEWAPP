@@ -380,10 +380,11 @@ export default function LoginScreen() {
       colors={role === 'empresa' ? ['#1a1a2e', '#16213e', '#0f0f23'] : ['#0C553C', '#052e21', '#021810']}
       style={styles.container}
     >
-      {/* Elementos decorativos de fondo */}
+      {/* Elementos decorativos de fondo mejorados */}
       <View style={[styles.decorativeOrb, styles.orb1, { backgroundColor: colors.light }]} />
       <View style={[styles.decorativeOrb, styles.orb2, { backgroundColor: colors.light }]} />
       <View style={[styles.decorativeOrb, styles.orb3, { backgroundColor: colors.light }]} />
+      <View style={[styles.decorativeOrb, styles.orb4, { backgroundColor: colors.light }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -393,72 +394,57 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header con ícono */}
+          {/* Header mejorado con logo y animación */}
           <View style={styles.header}>
-            <View style={styles.iconWrapper}>
+            <View style={styles.logoContainer}>
               <LinearGradient
                 colors={colors.gradient as any}
-                style={styles.iconGradient}
+                style={styles.logoGradient}
               >
-                <View style={styles.iconInner}>
+                <View style={styles.logoInner}>
                   <Ionicons 
-                    name={role === 'empresa' ? "business" : "person"} 
-                    size={45} 
+                    name={role === 'empresa' ? "business" : "car-sport"} 
+                    size={32} 
                     color={colors.primary} 
                   />
                 </View>
               </LinearGradient>
-              {/* Anillo exterior */}
-              <View style={[styles.iconRingOuter, { borderColor: colors.primary }]} />
+              <View style={[styles.logoPulse, { borderColor: colors.primary }]} />
             </View>
 
-            <Text style={styles.title}>
-              {getRoleTitle()}
-            </Text>
-            <Text style={styles.subtitle}>
-              {getRoleSubtitle()}
-            </Text>
-
-            {/* Badge de rol */}
-            <View style={[styles.roleBadge, { backgroundColor: colors.light, borderColor: colors.primary }]}>
-              <Ionicons 
-                name={role === 'empresa' ? 'briefcase' : 'star'} 
-                size={14} 
-                color={colors.primary} 
-              />
-              <Text style={[styles.roleBadgeText, { color: colors.primary }]}>
-                {role === 'empresa' ? 'Cuenta Empresarial' : 'Cuenta Personal'}
-              </Text>
-            </View>
+            <Text style={styles.brandName}>AUTONEW</Text>
+            <Text style={styles.title}>{getRoleTitle()}</Text>
+            <Text style={styles.subtitle}>{getRoleSubtitle()}</Text>
           </View>
 
-          {/* Formulario con efecto glassmorphism */}
+          {/* Formulario con efecto glassmorphism mejorado */}
           <View style={styles.formCard}>
-            {/* Fondo con blur */}
             <BlurView intensity={25} tint="dark" style={styles.blurContainer}>
               <LinearGradient
-                colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)', 'rgba(0,0,0,0.1)']}
+                colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.05)', 'rgba(0,0,0,0.15)']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.formGradient}
               >
-                {/* Decoración superior */}
-                <View style={[styles.formDecorTop, { backgroundColor: colors.primary }]} />
+                {/* Línea decorativa superior con gradiente */}
+                <LinearGradient
+                  colors={colors.gradient as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.formDecorTop}
+                />
                 
-                {/* Header del formulario con ícono */}
+                {/* Header del formulario */}
                 <View style={styles.formHeader}>
-                  <View style={[styles.formIconWrapper, { backgroundColor: colors.light }]}>
+                  <View style={[styles.formHeaderIcon, { backgroundColor: colors.light }]}>
                     <Ionicons 
-                      name={isLogin ? 'log-in-outline' : 'person-add-outline'} 
-                      size={28} 
+                      name={isLogin ? "log-in-outline" : "person-add-outline"} 
+                      size={20} 
                       color={colors.primary} 
                     />
                   </View>
                   <Text style={styles.formTitle}>
                     {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-                  </Text>
-                  <Text style={styles.formSubtitle}>
-                    {isLogin ? 'Ingresa tus credenciales' : 'Completa tus datos'}
                   </Text>
                 </View>
 
@@ -684,18 +670,11 @@ export default function LoginScreen() {
               
               {/* Toggle entre login y registro */}
               <View style={styles.toggleContainer}>
-                <View style={styles.toggleDivider}>
-                  <View style={styles.toggleDividerLine} />
-                  <Ionicons name="ellipse" size={6} color="rgba(255,255,255,0.3)" />
-                  <View style={styles.toggleDividerLine} />
-                </View>
-                
                 {role === 'empresa' ? (
                   <TouchableOpacity 
                     style={[styles.toggleButton, { borderColor: colors.light }]} 
                     onPress={() => Linking.openURL('https://autonew-produccion.onrender.com/empresas/')}
                   >
-                    <Ionicons name="open-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.toggleButtonText}>
                       {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
                       <Text style={[styles.toggleButtonTextBold, { color: colors.primary }]}>
@@ -708,12 +687,6 @@ export default function LoginScreen() {
                     style={[styles.toggleButton, { borderColor: colors.light }]} 
                     onPress={toggleMode}
                   >
-                    <Ionicons 
-                      name={isLogin ? 'person-add-outline' : 'log-in-outline'} 
-                      size={18} 
-                      color={colors.primary} 
-                      style={{ marginRight: 8 }} 
-                    />
                     <Text style={styles.toggleButtonText}>
                       {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
                       <Text style={[styles.toggleButtonTextBold, { color: colors.primary }]}>
@@ -722,13 +695,6 @@ export default function LoginScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-              </View>
-              
-              {/* Decoración inferior */}
-              <View style={styles.formFooterDecor}>
-                <View style={[styles.footerDot, { backgroundColor: colors.primary }]} />
-                <View style={[styles.footerDot, styles.footerDotSmall, { backgroundColor: colors.secondary }]} />
-                <View style={[styles.footerDot, { backgroundColor: colors.primary }]} />
               </View>
               </LinearGradient>
             </BlurView>
@@ -815,180 +781,175 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   orb1: {
-    width: 200,
-    height: 200,
-    top: -50,
-    right: -50,
+    width: 120,
+    height: 120,
+    top: -30,
+    right: -30,
   },
   orb2: {
-    width: 150,
-    height: 150,
-    bottom: 100,
-    left: -60,
-  },
-  orb3: {
     width: 100,
     height: 100,
-    top: height * 0.4,
-    right: -30,
+    bottom: 60,
+    left: -40,
+  },
+  orb3: {
+    width: 70,
+    height: 70,
+    top: height * 0.35,
+    right: -20,
+  },
+  orb4: {
+    width: 50,
+    height: 50,
+    top: height * 0.6,
+    left: 20,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
-    paddingTop: 50,
-    paddingBottom: 30,
+    padding: 16,
+    paddingTop: 35,
+    paddingBottom: 20,
   },
-  // Header
+  // Header mejorado
   header: {
     alignItems: 'center',
-    marginBottom: 30,
-  },
-  iconWrapper: {
-    position: 'relative',
     marginBottom: 20,
   },
-  iconGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  logoContainer: {
+    position: 'relative',
+    marginBottom: 14,
+  },
+  logoGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 5,
+    padding: 3,
   },
-  iconInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  logoInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconRingOuter: {
+  logoPulse: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 2,
-    borderStyle: 'dashed',
-    top: -10,
-    left: -10,
+    top: -6,
+    left: -6,
     opacity: 0.3,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+  brandName: {
+    fontSize: 28,
+    fontWeight: '800',
     color: '#fff',
-    marginBottom: 8,
-    textAlign: 'center',
+    letterSpacing: 4,
+    marginBottom: 4,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  subtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.75)',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
-  },
-  roleBadgeText: {
-    fontSize: 13,
+  title: {
+    fontSize: 18,
     fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  // Form Card con Glassmorphism
+  subtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.65)',
+    textAlign: 'center',
+  },
+  // Form Card con Glassmorphism mejorado
   formCard: {
-    borderRadius: 28,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.4,
-    shadowRadius: 25,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 18,
   },
   blurContainer: {
-    borderRadius: 28,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   formGradient: {
-    padding: 28,
-    paddingTop: 20,
-    borderRadius: 28,
+    padding: 22,
+    paddingTop: 18,
+    borderRadius: 24,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   formDecorTop: {
     position: 'absolute',
     top: 0,
-    left: 30,
-    right: 30,
+    left: 40,
+    right: 40,
     height: 3,
     borderBottomLeftRadius: 3,
     borderBottomRightRadius: 3,
   },
   formHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 28,
+    justifyContent: 'center',
+    marginBottom: 18,
+    gap: 10,
   },
-  formIconWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  formHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
   formTitle: {
-    fontSize: 24,
+    fontSize: 19,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 6,
     letterSpacing: 0.5,
-  },
-  formSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
   },
   // Inputs con estilo mejorado
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 18,
-    marginBottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 14,
+    marginBottom: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
   },
   inputIconBox: {
-    width: 54,
-    height: 58,
+    width: 48,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.08)',
+    borderRightColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
     flex: 1,
-    height: 58,
+    height: 50,
     fontSize: 15,
     color: '#fff',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
-  // Login Button
+  // Login Button mejorado
   loginButton: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -996,7 +957,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   loginButtonGradient: {
-    height: 56,
+    height: 52,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1006,78 +967,51 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  // Toggle Button
+  // Toggle Button mejorado
   toggleContainer: {
-    marginTop: 10,
-  },
-  toggleDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  toggleDividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginTop: 6,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   toggleButtonText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 14,
   },
   toggleButtonTextBold: {
-    fontWeight: 'bold',
-  },
-  formFooterDecor: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-    gap: 8,
-  },
-  footerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.6,
-  },
-  footerDotSmall: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    opacity: 0.4,
+    fontWeight: '700',
   },
   // Back Button
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 25,
-    padding: 12,
+    marginTop: 14,
+    padding: 8,
   },
   backButtonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   backButtonText: {
     color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
   },
   // Modal de Éxito
@@ -1194,80 +1128,84 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
   },
-  // Estilos de autenticación biométrica
+  // Estilos de autenticación biométrica mejorados
   biometricDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    height: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   dividerText: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    paddingHorizontal: 16,
-    fontSize: 13,
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.55)',
+    paddingHorizontal: 14,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   biometricButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    height: 56,
-    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 14,
+    height: 50,
+    marginBottom: 10,
     borderWidth: 1.5,
   },
   biometricIconContainer: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   biometricButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   biometricHint: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 10,
   },
   biometricHintIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
   },
   biometricHintText: {
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 13,
+    fontSize: 12,
     marginLeft: 10,
     fontStyle: 'italic',
   },
-  // Estilos para recordar correo
+  // Estilos para recordar correo mejorados
   rememberEmailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    marginTop: -6,
-    paddingLeft: 8,
+    marginBottom: 10,
+    marginTop: -2,
+    paddingLeft: 4,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 7,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1276,7 +1214,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   rememberEmailText: {
-    color: 'rgba(255, 255, 255, 0.75)',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

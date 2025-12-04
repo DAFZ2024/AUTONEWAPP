@@ -84,6 +84,14 @@ export default function CompanyServicesScreen() {
     }).format(value);
   };
 
+  // Constante para la comisión de la plataforma (12%)
+  const COMISION_PLATAFORMA = 0.12;
+
+  // Función para calcular el ingreso neto después de la comisión
+  const calcularIngresoNeto = (amount: number) => {
+    return amount * (1 - COMISION_PLATAFORMA);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-CO', {
@@ -193,7 +201,7 @@ export default function CompanyServicesScreen() {
     <View key={servicio.id_servicio} style={styles.servicioCard}>
       {/* Barra de estado superior */}
       <LinearGradient
-        colors={['#FF6B35', '#FF8E53']}
+        colors={['#9E3A10', '#B54A1C']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.cardStatusBar}
@@ -203,7 +211,7 @@ export default function CompanyServicesScreen() {
         <View style={styles.servicioHeader}>
           <View style={styles.servicioIconContainer}>
             <LinearGradient
-              colors={['#FF6B35', '#FF8E53']}
+              colors={['#9E3A10', '#B54A1C']}
               style={styles.servicioIconGradient}
             >
               <Ionicons name="checkmark-circle" size={24} color="#fff" />
@@ -211,10 +219,10 @@ export default function CompanyServicesScreen() {
           </View>
           <View style={styles.servicioInfo}>
             <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
-            <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+            <Text style={styles.servicioPrecio}>{formatCurrency(calcularIngresoNeto(servicio.precio))}</Text>
           </View>
           <View style={styles.activoBadge}>
-            <Ionicons name="shield-checkmark" size={12} color="#FF6B35" />
+            <Ionicons name="shield-checkmark" size={12} color="#CC5F2A" />
             <Text style={styles.activoBadgeText}>Activo</Text>
           </View>
         </View>
@@ -226,7 +234,7 @@ export default function CompanyServicesScreen() {
         <View style={styles.servicioStats}>
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <Ionicons name="calendar-outline" size={14} color="#FF6B35" />
+              <Ionicons name="calendar-outline" size={14} color="#CC5F2A" />
             </View>
             <View>
               <Text style={styles.statValue}>{servicio.total_reservas || 0}</Text>
@@ -236,11 +244,11 @@ export default function CompanyServicesScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <Ionicons name="cash-outline" size={14} color="#FFB347" />
+              <Ionicons name="cash-outline" size={14} color="#CC5F2A" />
             </View>
             <View>
-              <Text style={styles.statValue}>{formatCurrency(Number(servicio.ingresos_generados) || 0)}</Text>
-              <Text style={styles.statLabel}>Ingresos</Text>
+              <Text style={styles.statValue}>{formatCurrency(calcularIngresoNeto(Number(servicio.ingresos_generados) || 0))}</Text>
+              <Text style={styles.statLabel}>Ingresos Netos</Text>
             </View>
           </View>
         </View>
@@ -258,7 +266,7 @@ export default function CompanyServicesScreen() {
       <View key={servicio.id_servicio} style={styles.servicioCard}>
         {/* Barra de estado superior */}
         <LinearGradient
-          colors={['#FFB347', '#FF8E53']}
+          colors={['#CC5F2A', '#B54A1C']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.cardStatusBar}
@@ -268,7 +276,7 @@ export default function CompanyServicesScreen() {
           <View style={styles.servicioHeader}>
             <View style={styles.servicioIconContainer}>
               <LinearGradient
-                colors={['#FFB347', '#FF8E53']}
+                colors={['#CC5F2A', '#B54A1C']}
                 style={styles.servicioIconGradient}
               >
                 <Ionicons name="add-circle" size={24} color="#fff" />
@@ -276,11 +284,11 @@ export default function CompanyServicesScreen() {
             </View>
             <View style={styles.servicioInfo}>
               <Text style={styles.servicioNombre}>{servicio.nombre_servicio}</Text>
-              <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+              <Text style={styles.servicioPrecio}>{formatCurrency(calcularIngresoNeto(servicio.precio))}</Text>
             </View>
             {tieneSolicitudPendiente && (
               <View style={styles.pendingBadge}>
-                <Ionicons name="hourglass" size={12} color="#FF8E53" />
+                <Ionicons name="hourglass" size={12} color="#B54A1C" />
                 <Text style={styles.pendingBadgeText}>Pendiente</Text>
               </View>
             )}
@@ -303,7 +311,7 @@ export default function CompanyServicesScreen() {
               </View>
             ) : (
               <LinearGradient
-                colors={['#FF6B35', '#FF8E53']}
+                colors={['#9E3A10', '#B54A1C']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.solicitarBtnGradient}
@@ -393,7 +401,7 @@ export default function CompanyServicesScreen() {
     return (
       <View style={styles.loadingContainer}>
         <LinearGradient
-          colors={['#FF6B35', '#FF8E53', '#FFB347']}
+          colors={['#9E3A10', '#B54A1C', '#CC5F2A']}
           style={styles.loadingGradient}
         >
           <View style={styles.loadingContent}>
@@ -417,7 +425,7 @@ export default function CompanyServicesScreen() {
     <View style={{ flex: 1, backgroundColor: '#FFF8F5' }}>
       {/* Header Premium con Gradiente */}
       <LinearGradient
-        colors={['#FF6B35', '#FF8E53', '#FFB347']}
+        colors={['#9E3A10', '#B54A1C', '#CC5F2A']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -436,7 +444,7 @@ export default function CompanyServicesScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.backButtonCircle}>
-                <Ionicons name="arrow-back" size={20} color="#FF6B35" />
+                <Ionicons name="arrow-back" size={20} color="#CC5F2A" />
               </View>
             </TouchableOpacity>
             
@@ -480,8 +488,8 @@ export default function CompanyServicesScreen() {
                 <Ionicons name="cash" size={16} color="#f59e0b" />
               </View>
               <View>
-                <Text style={styles.miniStatValue}>{formatCurrency(totalIngresos).replace('COP', '').trim()}</Text>
-                <Text style={styles.miniStatLabel}>Ingresos</Text>
+                <Text style={styles.miniStatValue}>{formatCurrency(calcularIngresoNeto(totalIngresos)).replace('COP', '').trim()}</Text>
+                <Text style={styles.miniStatLabel}>Ingresos Netos</Text>
               </View>
             </View>
           </View>
@@ -501,14 +509,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'asignados' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
+              colors={activeTab === 'asignados' ? ['#9E3A10', '#B54A1C'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'asignados' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="checkmark-circle"
                   size={18}
-                  color={activeTab === 'asignados' ? '#fff' : '#FF6B35'}
+                  color={activeTab === 'asignados' ? '#fff' : '#CC5F2A'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'asignados' && styles.tabTextActive]}>
@@ -528,14 +536,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'disponibles' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
+              colors={activeTab === 'disponibles' ? ['#9E3A10', '#B54A1C'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'disponibles' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="add-circle"
                   size={18}
-                  color={activeTab === 'disponibles' ? '#fff' : '#FFB347'}
+                  color={activeTab === 'disponibles' ? '#fff' : '#CC5F2A'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'disponibles' && styles.tabTextActive]}>
@@ -555,14 +563,14 @@ export default function CompanyServicesScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={activeTab === 'solicitudes' ? ['#FF6B35', '#FF8E53'] : ['#fff', '#fff']}
+              colors={activeTab === 'solicitudes' ? ['#9E3A10', '#B54A1C'] : ['#fff', '#fff']}
               style={styles.tabGradient}
             >
               <View style={[styles.tabIconContainer, activeTab === 'solicitudes' && styles.tabIconContainerActive]}>
                 <Ionicons
                   name="document-text"
                   size={18}
-                  color={activeTab === 'solicitudes' ? '#fff' : '#FF6B35'}
+                  color={activeTab === 'solicitudes' ? '#fff' : '#CC5F2A'}
                 />
               </View>
               <Text style={[styles.tabText, activeTab === 'solicitudes' && styles.tabTextActive]}>
@@ -590,7 +598,7 @@ export default function CompanyServicesScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
         }
       >
         {activeTab === 'asignados' && (
@@ -626,7 +634,7 @@ export default function CompanyServicesScreen() {
             ) : (
               <>
                 <View style={styles.infoBox}>
-                  <Ionicons name="information-circle" size={20} color="#FF6B35" />
+                  <Ionicons name="information-circle" size={20} color="#CC5F2A" />
                   <Text style={styles.infoText}>
                     Solicita nuevos servicios para ampliar tu oferta. Las solicitudes serán
                     revisadas por el administrador.
@@ -679,7 +687,7 @@ export default function CompanyServicesScreen() {
                   {servicioSeleccionado.nombre_servicio}
                 </Text>
                 <Text style={styles.servicioPreviewPrecio}>
-                  {formatCurrency(servicioSeleccionado.precio)}
+                  {formatCurrency(calcularIngresoNeto(servicioSeleccionado.precio))}
                 </Text>
               </View>
             )}
@@ -965,7 +973,7 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   tabBadgeTextActive: {
     color: '#fff',
@@ -993,17 +1001,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     padding: 14,
     borderRadius: 12,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
+    borderLeftColor: '#CC5F2A',
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     lineHeight: 20,
   },
 
@@ -1051,35 +1059,35 @@ const styles = StyleSheet.create({
   },
   servicioPrecio: {
     fontSize: 15,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '700',
   },
   activoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
   },
   activoBadgeText: {
     fontSize: 11,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '700',
   },
   pendingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 179, 71, 0.2)',
+    backgroundColor: 'rgba(181, 74, 28, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
   },
   pendingBadgeText: {
     fontSize: 11,
-    color: '#FF8E53',
+    color: '#B54A1C',
     fontWeight: '700',
   },
   servicioDescripcion: {
@@ -1332,12 +1340,12 @@ const styles = StyleSheet.create({
   servicioPreviewNombre: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   servicioPreviewPrecio: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   formGroup: {
     marginBottom: 16,
@@ -1367,7 +1375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 10,

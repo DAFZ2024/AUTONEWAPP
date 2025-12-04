@@ -76,7 +76,7 @@ export default function CompanyDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#CC5F2A" />
         <Text style={styles.loadingText}>Cargando dashboard...</Text>
       </View>
     );
@@ -86,7 +86,7 @@ export default function CompanyDashboard() {
     <View style={styles.container}>
       {/* Header Premium con Gradiente */}
       <LinearGradient
-        colors={['#FF6B35', '#FF8E53', '#FFB347']}
+        colors={['#9E3A10', '#B54A1C', '#CC5F2A']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -104,7 +104,7 @@ export default function CompanyDashboard() {
           <View style={styles.headerTopRow}>
             <View style={styles.brandContainer}>
               <View style={styles.logoContainer}>
-                <Ionicons name="car-sport" size={18} color="#FF6B35" />
+                <Ionicons name="car-sport" size={18} color="#CC5F2A" />
               </View>
               <Text style={styles.brandText}>AutoNew</Text>
               <View style={styles.proBadge}>
@@ -130,7 +130,7 @@ export default function CompanyDashboard() {
                 />
               ) : (
                 <View style={styles.profileImagePlaceholder}>
-                  <Ionicons name="business" size={32} color="#FF6B35" />
+                  <Ionicons name="business" size={32} color="#CC5F2A" />
                 </View>
               )}
               <View style={styles.onlineIndicator} />
@@ -142,7 +142,7 @@ export default function CompanyDashboard() {
                 {empresa?.nombre_empresa || 'Mi Empresa'}
               </Text>
               <View style={styles.roleBadge}>
-                <Ionicons name="briefcase" size={12} color="#FF6B35" />
+                <Ionicons name="briefcase" size={12} color="#CC5F2A" />
                 <Text style={styles.roleText}>Panel de Administración</Text>
               </View>
             </View>
@@ -190,7 +190,7 @@ export default function CompanyDashboard() {
       <ScrollView 
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
         }
       >
         {error && (
@@ -208,7 +208,7 @@ export default function CompanyDashboard() {
           <View style={styles.panelHeader}>
             <View style={styles.panelTitleRow}>
               <View style={styles.panelIconBadge}>
-                <Ionicons name="grid" size={16} color="#FF6B35" />
+                <Ionicons name="grid" size={16} color="#CC5F2A" />
               </View>
               <Text style={styles.panelTitle}>Panel de Control</Text>
             </View>
@@ -252,7 +252,7 @@ export default function CompanyDashboard() {
           {/* Resumen del Mes Compacto */}
           <View style={styles.monthlyCompact}>
             <View style={styles.monthlyCompactHeader}>
-              <Ionicons name="trending-up" size={14} color="#FF6B35" />
+              <Ionicons name="trending-up" size={14} color="#CC5F2A" />
               <Text style={styles.monthlyCompactTitle}>Resumen del Mes</Text>
             </View>
             <View style={styles.monthlyCompactRow}>
@@ -282,7 +282,7 @@ export default function CompanyDashboard() {
           
           <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('./company-reservations')}>
             <View style={styles.serviceIconContainer}>
-              <Ionicons name="document-text-outline" size={28} color="#FF6B35" />
+              <Ionicons name="document-text-outline" size={28} color="#CC5F2A" />
             </View>
             <Text style={styles.serviceTitle}>Reservas</Text>
             <Text style={styles.serviceDescription}>Gestionar citas y horarios</Text>
@@ -290,7 +290,7 @@ export default function CompanyDashboard() {
           
           <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('./company-services')}>
             <View style={styles.serviceIconContainer}>
-              <Ionicons name="water-outline" size={28} color="#FF6B35" />
+              <Ionicons name="water-outline" size={28} color="#CC5F2A" />
             </View>
             <Text style={styles.serviceTitle}>Servicios</Text>
             <Text style={styles.serviceDescription}>Mis servicios y solicitudes</Text>
@@ -298,7 +298,7 @@ export default function CompanyDashboard() {
           
           <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('./company-profile')}>
             <View style={styles.serviceIconContainer}>
-              <Ionicons name="business-outline" size={28} color="#FF6B35" />
+              <Ionicons name="business-outline" size={28} color="#CC5F2A" />
             </View>
             <Text style={styles.serviceTitle}>Mi Perfil</Text>
             <Text style={styles.serviceDescription}>Datos y configuración</Text>
@@ -306,7 +306,7 @@ export default function CompanyDashboard() {
           
           <TouchableOpacity style={styles.serviceCard} onPress={() => router.push('./company-payments')}>
             <View style={styles.serviceIconContainer}>
-              <Ionicons name="cash-outline" size={28} color="#FF6B35" />
+              <Ionicons name="cash-outline" size={28} color="#CC5F2A" />
             </View>
             <Text style={styles.serviceTitle}>Mis Pagos</Text>
             <Text style={styles.serviceDescription}>Pagos y liquidaciones</Text>
@@ -317,7 +317,7 @@ export default function CompanyDashboard() {
         {stats.proximasCitas && stats.proximasCitas.length > 0 && (
           <View style={styles.upcomingContainer}>
             <View style={styles.upcomingTitleRow}>
-              <Ionicons name="time-outline" size={20} color="#FF6B35" />
+              <Ionicons name="time-outline" size={20} color="#CC5F2A" />
               <Text style={styles.upcomingTitle}>Próximas Citas de Hoy</Text>
             </View>
             {stats.proximasCitas.map((cita: any, index: number) => (
@@ -359,7 +359,7 @@ export default function CompanyDashboard() {
             onPress={() => router.push('./company-reservations')}
           >
             <View style={styles.quickActionIconContainer}>
-              <Ionicons name="qr-code-outline" size={20} color="#FF6B35" />
+              <Ionicons name="qr-code-outline" size={20} color="#CC5F2A" />
             </View>
             <Text style={styles.quickActionText}>Escanear QR de Reserva</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -370,7 +370,7 @@ export default function CompanyDashboard() {
             onPress={() => router.push('./company-payments')}
           >
             <View style={styles.quickActionIconContainer}>
-              <Ionicons name="cash-outline" size={20} color="#FF6B35" />
+              <Ionicons name="cash-outline" size={20} color="#CC5F2A" />
             </View>
             <Text style={styles.quickActionText}>Ver Mis Pagos</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -381,7 +381,7 @@ export default function CompanyDashboard() {
             onPress={() => router.push('./company-analytics')}
           >
             <View style={styles.quickActionIconContainer}>
-              <Ionicons name="bar-chart-outline" size={20} color="#FF6B35" />
+              <Ionicons name="bar-chart-outline" size={20} color="#CC5F2A" />
             </View>
             <Text style={styles.quickActionText}>Ver Estadísticas</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -392,7 +392,7 @@ export default function CompanyDashboard() {
             onPress={() => router.push('./company-services')}
           >
             <View style={styles.quickActionIconContainer}>
-              <Ionicons name="add-circle-outline" size={20} color="#FF6B35" />
+              <Ionicons name="add-circle-outline" size={20} color="#CC5F2A" />
             </View>
             <Text style={styles.quickActionText}>Solicitar Nuevo Servicio</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   retryButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 5,
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#10B981',
     borderWidth: 3,
-    borderColor: '#FF6B35',
+    borderColor: '#CC5F2A',
   },
   profileInfo: {
     flex: 1,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: 11,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '600',
   },
   quickStatsRow: {
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 107, 53, 0.15)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   // Resumen Mensual Compacto
   monthlyCompact: {
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     borderRadius: 12,
     padding: 12,
   },
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   monthlyCompactTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   monthlyCompactRow: {
     flexDirection: 'row',
@@ -785,18 +785,18 @@ const styles = StyleSheet.create({
   monthlyCompactValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   monthlyCompactLabel: {
     fontSize: 10,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     opacity: 0.7,
     marginTop: 2,
   },
   monthlyCompactDivider: {
     width: 1,
     height: 30,
-    backgroundColor: 'rgba(255, 107, 53, 0.2)',
+    backgroundColor: 'rgba(204, 95, 42, 0.2)',
   },
   servicesGrid: {
     flexDirection: 'row',
@@ -820,13 +820,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   primaryCard: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
   },
   serviceIconContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 3,
     textAlign: 'center',
   },
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   upcomingTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   citaItem: {
     flexDirection: 'row',
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   citaHora: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
   quickActionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 15,
   },
   quickActionButton: {
@@ -953,7 +953,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
+    borderLeftColor: '#CC5F2A',
   },
   quickActionIconContainer: {
     marginRight: 10,
@@ -961,7 +961,7 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     fontSize: 20,
     marginRight: 10,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: 'bold',
   },
   quickActionText: {

@@ -20,6 +20,7 @@ export default function ClientDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [miSuscripcion, setMiSuscripcion] = useState<Suscripcion | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -60,9 +61,19 @@ export default function ClientDashboard() {
         const initial = fullName.charAt(0).toUpperCase();
         setUserInitial(initial);
         
-        // Cargar foto de perfil
-        if (user.profile_picture) {
-          setProfilePicture(user.profile_picture);
+        // Cargar foto de perfil - validar que sea una URL válida
+        if (user.profile_picture && typeof user.profile_picture === 'string' && user.profile_picture.trim() !== '') {
+          // Verificar que sea una URL válida (http/https o cloudinary)
+          const isValidUrl = user.profile_picture.startsWith('http://') || 
+                            user.profile_picture.startsWith('https://') ||
+                            user.profile_picture.includes('cloudinary');
+          if (isValidUrl) {
+            setProfilePicture(user.profile_picture);
+            setImageLoadError(false);
+          } else {
+            console.log('[Dashboard] URL de imagen inválida:', user.profile_picture);
+            setProfilePicture(null);
+          }
         } else {
           setProfilePicture(null);
         }
@@ -90,8 +101,15 @@ export default function ClientDashboard() {
         const initial = fullName.charAt(0).toUpperCase();
         setUserInitial(initial);
         
-        if (user.profile_picture) {
-          setProfilePicture(user.profile_picture);
+        // Validar URL de imagen del fallback local
+        if (user.profile_picture && typeof user.profile_picture === 'string' && user.profile_picture.trim() !== '') {
+          const isValidUrl = user.profile_picture.startsWith('http://') || 
+                            user.profile_picture.startsWith('https://') ||
+                            user.profile_picture.includes('cloudinary');
+          if (isValidUrl) {
+            setProfilePicture(user.profile_picture);
+            setImageLoadError(false);
+          }
         }
         
         const id = user.id || (user as any).id_usuario;
@@ -149,6 +167,7 @@ export default function ClientDashboard() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setImageLoadError(false); // Resetear error de imagen al refrescar
     await loadUserData();
     await loadSuscripcion();
     if (userId) {
@@ -189,11 +208,20 @@ export default function ClientDashboard() {
               style={styles.profileImageButton}
               onPress={() => router.push('./client-profile')}
             >
-              {profilePicture ? (
+              {profilePicture && !imageLoadError ? (
                 <Image
                   source={{ uri: profilePicture }}
                   style={styles.profileImage}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                  onError={(e) => {
+                    console.log('[Dashboard] Error cargando imagen:', e);
+                    setImageLoadError(true);
+                  }}
+                  onLoad={() => {
+                    setImageLoadError(false);
+                  }}
                 />
               ) : (
                 <View style={styles.profileImagePlaceholder}>

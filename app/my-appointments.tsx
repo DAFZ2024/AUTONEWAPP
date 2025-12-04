@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, SectionList, ActivityIndicator, Alert, RefreshControl, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, SectionList, ActivityIndicator, Alert, RefreshControl, ScrollView, Linking, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,6 +115,24 @@ export default function MyAppointments() {
   }, []);
 
   const sections = useMemo(() => {
+    // Función para ordenar por fecha y hora (de más antigua a más reciente)
+    const sortByDateAsc = (reservas: Reserva[]) => {
+      return [...reservas].sort((a, b) => {
+        const fechaA = new Date(`${a.fecha.toString().split('T')[0]}T${a.hora.toString().substring(0, 5)}:00`);
+        const fechaB = new Date(`${b.fecha.toString().split('T')[0]}T${b.hora.toString().substring(0, 5)}:00`);
+        return fechaA.getTime() - fechaB.getTime(); // Ascendente: más antigua primero
+      });
+    };
+
+    // Función para ordenar por fecha y hora (de más reciente a más antigua)
+    const sortByDateDesc = (reservas: Reserva[]) => {
+      return [...reservas].sort((a, b) => {
+        const fechaA = new Date(`${a.fecha.toString().split('T')[0]}T${a.hora.toString().substring(0, 5)}:00`);
+        const fechaB = new Date(`${b.fecha.toString().split('T')[0]}T${b.hora.toString().substring(0, 5)}:00`);
+        return fechaB.getTime() - fechaA.getTime(); // Descendente: más reciente primero
+      });
+    };
+
     // Incluir 'en_proceso' en próximas, vencidas en su propia tab, y ambas variantes de completado en historial
     const upcoming = appointments.filter(a => 
       a.estado === 'pendiente' || a.estado === 'confirmada' || a.estado === 'en_proceso'
@@ -125,11 +143,17 @@ export default function MyAppointments() {
     );
     
     if (activeTab === 'upcoming') {
-      return upcoming.length > 0 ? [{ title: 'Próximas', data: upcoming }] : [];
+      // Próximas: ordenar de más antigua a más reciente (las que se cumplen pronto primero)
+      const sortedUpcoming = sortByDateAsc(upcoming);
+      return sortedUpcoming.length > 0 ? [{ title: 'Próximas', data: sortedUpcoming }] : [];
     } else if (activeTab === 'expired') {
-      return expired.length > 0 ? [{ title: 'Vencidas', data: expired }] : [];
+      // Vencidas: ordenar de más antigua a más reciente
+      const sortedExpired = sortByDateAsc(expired);
+      return sortedExpired.length > 0 ? [{ title: 'Vencidas', data: sortedExpired }] : [];
     } else {
-      return past.length > 0 ? [{ title: 'Historial', data: past }] : [];
+      // Historial: ordenar de más reciente a más antigua
+      const sortedPast = sortByDateDesc(past);
+      return sortedPast.length > 0 ? [{ title: 'Historial', data: sortedPast }] : [];
     }
   }, [appointments, activeTab]);
 
@@ -141,6 +165,31 @@ export default function MyAppointments() {
   const closeDetails = () => {
     setSelected(null);
     setShowDetails(false);
+  };
+
+  // Función para abrir Google Maps con la dirección
+  const openInMaps = (direccion: string) => {
+    const encodedAddress = encodeURIComponent(direccion);
+    
+    // Crear URL para Google Maps
+    const url = Platform.select({
+      ios: `maps://maps.google.com/maps?daddr=${encodedAddress}`,
+      android: `google.navigation:q=${encodedAddress}`,
+      default: `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`,
+    });
+
+    // Intentar abrir Google Maps, si no está disponible usar el navegador web
+    Linking.canOpenURL(url || '').then((supported) => {
+      if (supported) {
+        Linking.openURL(url || '');
+      } else {
+        // Fallback a URL web de Google Maps
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`);
+      }
+    }).catch(() => {
+      // En caso de error, abrir URL web
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`);
+    });
   };
 
   // Función para verificar si se puede cancelar (12 horas antes)
@@ -717,6 +766,16 @@ export default function MyAppointments() {
           {/* Acciones para citas pendientes */}
           {isPending && (
             <View style={styles.cardActionsRow}>
+              {item.direccion_empresa && (
+                <TouchableOpacity 
+                  style={styles.cardActionBtnNav} 
+                  onPress={() => openInMaps(item.direccion_empresa || '')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="navigate-outline" size={14} color="#fff" />
+                  <Text style={styles.cardActionBtnNavText}>Ir</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.cardActionBtnQR} onPress={openQRScanner} activeOpacity={0.7}>
                 <Ionicons name="qr-code-outline" size={14} color="#fff" />
                 <Text style={styles.cardActionBtnQRText}>QR</Text>
@@ -2084,6 +2143,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     gap: 8,
+  },
+  cardActionBtnNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+  },
+  cardActionBtnNavText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   cardActionBtnQR: {
     flexDirection: 'row',

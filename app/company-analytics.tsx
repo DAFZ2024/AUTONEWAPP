@@ -43,6 +43,14 @@ export default function CompanyAnalytics() {
     fetchAnaliticas();
   }, [period]);
 
+  // Constante para la comisión de la plataforma (12%)
+  const COMISION_PLATAFORMA = 0.12;
+
+  // Función para calcular el ingreso neto después de la comisión
+  const calcularIngresoNeto = (amount: number) => {
+    return amount * (1 - COMISION_PLATAFORMA);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -70,7 +78,8 @@ export default function CompanyAnalytics() {
     }
     return data.ingresosMensuales.map(item => ({
       label: item.mes.substring(0, 3),
-      value: parseFloat(item.ingresos.toString()) || 0
+      // Aplicar descuento de comisión del 12%
+      value: calcularIngresoNeto(parseFloat(item.ingresos.toString()) || 0)
     }));
   };
 
@@ -163,7 +172,7 @@ export default function CompanyAnalytics() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#CC5F2A" />
         <Text style={styles.loadingText}>Cargando analíticas...</Text>
       </View>
     );
@@ -176,7 +185,7 @@ export default function CompanyAnalytics() {
     <ScrollView 
       contentContainerStyle={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
       }
     >
       <View style={styles.header}>
@@ -215,28 +224,28 @@ export default function CompanyAnalytics() {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="bar-chart-outline" size={24} color="#FF6B35" />
+            <Ionicons name="bar-chart-outline" size={24} color="#CC5F2A" />
           </View>
           <Text style={styles.statValue}>{data?.totalReservas || 0}</Text>
           <Text style={styles.statLabel}>Reservas Totales</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="cash-outline" size={24} color="#FF6B35" />
+            <Ionicons name="cash-outline" size={24} color="#CC5F2A" />
           </View>
-          <Text style={styles.statValue}>{formatCurrencyShort(data?.ingresosTotales || 0)}</Text>
-          <Text style={styles.statLabel}>Ingresos Totales</Text>
+          <Text style={styles.statValueSmall}>{formatCurrency(calcularIngresoNeto(data?.ingresosTotales || 0))}</Text>
+          <Text style={styles.statLabel}>Ingresos Netos</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="checkmark-circle-outline" size={24} color="#FF6B35" />
+            <Ionicons name="checkmark-circle-outline" size={24} color="#CC5F2A" />
           </View>
           <Text style={styles.statValue}>{data?.completadas || 0}</Text>
           <Text style={styles.statLabel}>Completadas</Text>
         </View>
         <View style={styles.statCard}>
           <View style={styles.statIcon}>
-            <Ionicons name="trending-up-outline" size={24} color="#FF6B35" />
+            <Ionicons name="trending-up-outline" size={24} color="#CC5F2A" />
           </View>
           <Text style={styles.statValue}>{data?.tasaExito || 0}%</Text>
           <Text style={styles.statLabel}>Tasa de Éxito</Text>
@@ -246,7 +255,7 @@ export default function CompanyAnalytics() {
       <View style={styles.chartSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="wallet-outline" size={20} color="#FF6B35" />
+            <Ionicons name="wallet-outline" size={20} color="#CC5F2A" />
             <Text style={styles.sectionTitle}>Ingresos Mensuales</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Últimos 6 meses</Text>
@@ -257,7 +266,7 @@ export default function CompanyAnalytics() {
       <View style={styles.chartSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="calendar-outline" size={20} color="#FF6B35" />
+            <Ionicons name="calendar-outline" size={20} color="#CC5F2A" />
             <Text style={styles.sectionTitle}>Reservas Diarias</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Esta semana</Text>
@@ -268,7 +277,7 @@ export default function CompanyAnalytics() {
       <View style={styles.servicesSection}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="star-outline" size={20} color="#FF6B35" />
+            <Ionicons name="star-outline" size={20} color="#CC5F2A" />
             <Text style={styles.sectionTitle}>Servicios Más Populares</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Top 4 del período</Text>
@@ -284,7 +293,7 @@ export default function CompanyAnalytics() {
                 <Text style={styles.serviceCount}>{service.cantidad} reservas</Text>
               </View>
               <View style={styles.serviceRevenueContainer}>
-                <Text style={styles.serviceRevenue}>{formatCurrency(parseFloat(service.ingresos_total.toString()))}</Text>
+                <Text style={styles.serviceRevenue}>{formatCurrency(calcularIngresoNeto(parseFloat(service.ingresos_total.toString())))}</Text>
               </View>
             </View>
           ))
@@ -298,34 +307,34 @@ export default function CompanyAnalytics() {
 
       <View style={styles.summarySection}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="document-text-outline" size={20} color="#FF6B35" />
+          <Ionicons name="document-text-outline" size={20} color="#CC5F2A" />
           <Text style={styles.sectionTitle}>Resumen Ejecutivo</Text>
         </View>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#FF6B35" />
+              <Ionicons name="ellipse" size={6} color="#CC5F2A" />
               <Text style={styles.summaryLabel}>Total de reservas:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.totalReservas || 0}</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#FF6B35" />
-              <Text style={styles.summaryLabel}>Ingresos generados:</Text>
+              <Ionicons name="ellipse" size={6} color="#CC5F2A" />
+              <Text style={styles.summaryLabel}>Ingresos netos (- 12% comisión):</Text>
             </View>
-            <Text style={styles.summaryValue}>{formatCurrency(data?.ingresosTotales || 0)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(calcularIngresoNeto(data?.ingresosTotales || 0))}</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#FF6B35" />
+              <Ionicons name="ellipse" size={6} color="#CC5F2A" />
               <Text style={styles.summaryLabel}>Tasa de cancelación:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.tasaCancelacion || 0}%</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#FF6B35" />
+              <Ionicons name="ellipse" size={6} color="#CC5F2A" />
               <Text style={styles.summaryLabel}>Servicio más popular:</Text>
             </View>
             <Text style={styles.summaryValue}>
@@ -334,7 +343,7 @@ export default function CompanyAnalytics() {
           </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryLabelRow}>
-              <Ionicons name="ellipse" size={6} color="#FF6B35" />
+              <Ionicons name="ellipse" size={6} color="#CC5F2A" />
               <Text style={styles.summaryLabel}>Reservas pendientes:</Text>
             </View>
             <Text style={styles.summaryValue}>{data?.pendientes || 0}</Text>
@@ -377,7 +386,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   retryButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -388,7 +397,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   header: { 
-    backgroundColor: '#FF6B35', 
+    backgroundColor: '#CC5F2A', 
     paddingTop: 50, 
     paddingBottom: 20, 
     flexDirection: 'row', 
@@ -450,8 +459,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   periodActive: { 
-    backgroundColor: '#FF6B35',
-    shadowColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
+    shadowColor: '#CC5F2A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -481,19 +490,19 @@ const styles = StyleSheet.create({
     width: '48%', 
     margin: '1%', 
     alignItems: 'center', 
-    shadowColor: '#FF6B35',
+    shadowColor: '#CC5F2A',
     shadowOffset: { width: 0, height: 3 }, 
     shadowOpacity: 0.12, 
     shadowRadius: 8, 
     elevation: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
+    borderLeftColor: '#CC5F2A',
   },
   statIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -501,8 +510,15 @@ const styles = StyleSheet.create({
   statValue: { 
     fontSize: 24, 
     fontWeight: 'bold', 
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginTop: 4,
+  },
+  statValueSmall: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    color: '#CC5F2A',
+    marginTop: 4,
+    textAlign: 'center',
   },
   statLabel: { 
     fontSize: 11, 
@@ -536,7 +552,7 @@ const styles = StyleSheet.create({
   sectionTitle: { 
     fontSize: 18, 
     fontWeight: 'bold', 
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -561,7 +577,7 @@ const styles = StyleSheet.create({
   barValue: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 6,
   },
   bar: { 
@@ -574,7 +590,7 @@ const styles = StyleSheet.create({
   },
   barFill: { 
     width: '100%', 
-    backgroundColor: '#FF6B35', 
+    backgroundColor: '#CC5F2A', 
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     minHeight: 4,
@@ -616,17 +632,17 @@ const styles = StyleSheet.create({
     top: -25,
     fontSize: 11,
     fontWeight: '600',
-    color: '#FF6B35',
+    color: '#CC5F2A',
   },
   lineDot: { 
     width: 12, 
     height: 12, 
-    backgroundColor: '#FF6B35', 
+    backgroundColor: '#CC5F2A', 
     borderRadius: 6, 
     position: 'absolute',
     borderWidth: 3,
     borderColor: '#fff',
-    shadowColor: '#FF6B35',
+    shadowColor: '#CC5F2A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -636,11 +652,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 107, 53, 0.2)',
+    backgroundColor: 'rgba(204, 95, 42, 0.2)',
   },
   lineSegment: { 
     height: 3, 
-    backgroundColor: '#FF6B35', 
+    backgroundColor: '#CC5F2A', 
     position: 'absolute', 
     left: 6,
   },
@@ -682,7 +698,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -707,14 +723,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   serviceRevenueContainer: {
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
   },
   serviceRevenue: { 
     fontSize: 13, 
-    color: '#FF6B35', 
+    color: '#CC5F2A', 
     fontWeight: '700',
   },
   emptyState: {
@@ -745,7 +761,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
+    borderLeftColor: '#CC5F2A',
     marginTop: 16,
   },
   summaryRow: {
@@ -767,7 +783,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 14,
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '700',
   },
 });

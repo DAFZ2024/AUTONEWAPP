@@ -242,6 +242,14 @@ export default function CompanyProfileScreen() {
     });
   };
 
+  // Constante para la comisión de la plataforma (12%)
+  const COMISION_PLATAFORMA = 0.12;
+
+  // Función para calcular el ingreso neto después de la comisión
+  const calcularIngresoNeto = (amount: number) => {
+    return amount * (1 - COMISION_PLATAFORMA);
+  };
+
   const handleGuardarBasico = async () => {
     if (!formBasico.nombre_empresa || !formBasico.direccion || !formBasico.telefono || !formBasico.email) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
@@ -332,7 +340,7 @@ export default function CompanyProfileScreen() {
         >
           {uploadingImage ? (
             <View style={styles.profileImagePlaceholder}>
-              <ActivityIndicator size="large" color="#FF6B35" />
+              <ActivityIndicator size="large" color="#CC5F2A" />
             </View>
           ) : perfil?.profile_image ? (
             <Image 
@@ -342,7 +350,7 @@ export default function CompanyProfileScreen() {
             />
           ) : (
             <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="business" size={50} color="#FF6B35" />
+              <Ionicons name="business" size={50} color="#CC5F2A" />
             </View>
           )}
           <View style={styles.editImageBadge}>
@@ -356,7 +364,7 @@ export default function CompanyProfileScreen() {
         <Text style={styles.sectionTitle}>Información del Negocio</Text>
         {!editandoBasico ? (
           <TouchableOpacity style={styles.editButton} onPress={() => setEditandoBasico(true)}>
-            <Ionicons name="pencil" size={18} color="#FF6B35" />
+            <Ionicons name="pencil" size={18} color="#CC5F2A" />
             <Text style={styles.editButtonText}>Editar</Text>
           </TouchableOpacity>
         ) : (
@@ -440,7 +448,7 @@ export default function CompanyProfileScreen() {
         <View style={styles.infoContainer}>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="business" size={20} color="#FF6B35" />
+              <Ionicons name="business" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Nombre</Text>
@@ -449,7 +457,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="location" size={20} color="#FF6B35" />
+              <Ionicons name="location" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Dirección</Text>
@@ -458,7 +466,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="call" size={20} color="#FF6B35" />
+              <Ionicons name="call" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Teléfono</Text>
@@ -467,7 +475,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="mail" size={20} color="#FF6B35" />
+              <Ionicons name="mail" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Email</Text>
@@ -476,7 +484,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="calendar" size={20} color="#FF6B35" />
+              <Ionicons name="calendar" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Registrado desde</Text>
@@ -491,21 +499,21 @@ export default function CompanyProfileScreen() {
         <Text style={styles.statsTitle}>Estadísticas Generales</Text>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons name="calendar-outline" size={24} color="#FF6B35" />
+            <Ionicons name="calendar-outline" size={24} color="#CC5F2A" />
             <Text style={styles.statNumber}>{perfil?.estadisticas?.totalReservas || 0}</Text>
             <Text style={styles.statLabel}>Reservas Totales</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="checkmark-circle-outline" size={24} color="#FFB347" />
+            <Ionicons name="checkmark-circle-outline" size={24} color="#CC5F2A" />
             <Text style={styles.statNumber}>{perfil?.estadisticas?.reservasCompletadas || 0}</Text>
             <Text style={styles.statLabel}>Completadas</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="cash-outline" size={24} color="#FF8E53" />
-            <Text style={styles.statNumber}>{formatCurrency(perfil?.estadisticas?.ingresosTotales || 0)}</Text>
-            <Text style={styles.statLabel}>Ingresos</Text>
+            <Ionicons name="cash-outline" size={24} color="#CC5F2A" />
+            <Text style={styles.statNumberSmall}>{formatCurrency(calcularIngresoNeto(perfil?.estadisticas?.ingresosTotales || 0))}</Text>
+            <Text style={styles.statLabel}>Ingresos Netos</Text>
           </View>
         </View>
       </View>
@@ -534,7 +542,7 @@ export default function CompanyProfileScreen() {
         <Text style={styles.sectionTitle}>Información Bancaria y Fiscal</Text>
         {!editandoBancario ? (
           <TouchableOpacity style={styles.editButton} onPress={() => setEditandoBancario(true)}>
-            <Ionicons name="pencil" size={18} color="#FF6B35" />
+            <Ionicons name="pencil" size={18} color="#CC5F2A" />
             <Text style={styles.editButtonText}>Editar</Text>
           </TouchableOpacity>
         ) : (
@@ -716,7 +724,7 @@ export default function CompanyProfileScreen() {
           <Text style={styles.infoSectionTitle}>Titular de la Cuenta</Text>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="person" size={20} color="#FF6B35" />
+              <Ionicons name="person" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Titular</Text>
@@ -725,7 +733,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="card" size={20} color="#FF6B35" />
+              <Ionicons name="card" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Documento</Text>
@@ -741,7 +749,7 @@ export default function CompanyProfileScreen() {
           <Text style={[styles.infoSectionTitle, { marginTop: 16 }]}>Cuenta Bancaria</Text>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="business" size={20} color="#FF6B35" />
+              <Ionicons name="business" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Banco</Text>
@@ -750,7 +758,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="wallet" size={20} color="#FF6B35" />
+              <Ionicons name="wallet" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Cuenta</Text>
@@ -766,7 +774,7 @@ export default function CompanyProfileScreen() {
           <Text style={[styles.infoSectionTitle, { marginTop: 16 }]}>Información Fiscal</Text>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="document-text" size={20} color="#FF6B35" />
+              <Ionicons name="document-text" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>NIT</Text>
@@ -775,7 +783,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="briefcase" size={20} color="#FF6B35" />
+              <Ionicons name="briefcase" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Razón Social</Text>
@@ -787,7 +795,7 @@ export default function CompanyProfileScreen() {
           <Text style={[styles.infoSectionTitle, { marginTop: 16 }]}>Contacto de Facturación</Text>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="person" size={20} color="#FF6B35" />
+              <Ionicons name="person" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Responsable</Text>
@@ -796,7 +804,7 @@ export default function CompanyProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconContainer}>
-              <Ionicons name="mail" size={20} color="#FF6B35" />
+              <Ionicons name="mail" size={20} color="#CC5F2A" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Email</Text>
@@ -814,7 +822,7 @@ export default function CompanyProfileScreen() {
 
       <TouchableOpacity style={styles.securityItem} onPress={() => setModalContrasena(true)}>
         <View style={styles.securityIconContainer}>
-          <Ionicons name="key" size={24} color="#FF6B35" />
+          <Ionicons name="key" size={24} color="#CC5F2A" />
         </View>
         <View style={styles.securityContent}>
           <Text style={styles.securityTitle}>Cambiar Contraseña</Text>
@@ -825,7 +833,7 @@ export default function CompanyProfileScreen() {
 
       <View style={styles.securityItem}>
         <View style={styles.securityIconContainer}>
-          <Ionicons name="shield-checkmark" size={24} color="#FF6B35" />
+          <Ionicons name="shield-checkmark" size={24} color="#CC5F2A" />
         </View>
         <View style={styles.securityContent}>
           <Text style={styles.securityTitle}>Estado de la Cuenta</Text>
@@ -838,7 +846,7 @@ export default function CompanyProfileScreen() {
 
       <View style={styles.securityItem}>
         <View style={styles.securityIconContainer}>
-          <Ionicons name="checkmark-circle" size={24} color="#FF6B35" />
+          <Ionicons name="checkmark-circle" size={24} color="#CC5F2A" />
         </View>
         <View style={styles.securityContent}>
           <Text style={styles.securityTitle}>Verificación de Empresa</Text>
@@ -850,7 +858,7 @@ export default function CompanyProfileScreen() {
       </View>
 
       <View style={styles.helpBox}>
-        <Ionicons name="help-circle-outline" size={24} color="#FF6B35" />
+        <Ionicons name="help-circle-outline" size={24} color="#CC5F2A" />
         <View style={styles.helpContent}>
           <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
           <Text style={styles.helpDescription}>
@@ -864,7 +872,7 @@ export default function CompanyProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#CC5F2A" />
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
@@ -892,21 +900,21 @@ export default function CompanyProfileScreen() {
             style={[styles.tab, activeTab === 'info' && styles.tabActive]}
             onPress={() => setActiveTab('info')}
           >
-            <Ionicons name="business" size={18} color={activeTab === 'info' ? '#FF6B35' : '#666'} />
+            <Ionicons name="business" size={18} color={activeTab === 'info' ? '#CC5F2A' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'info' && styles.tabTextActive]}>Información</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'bancario' && styles.tabActive]}
             onPress={() => setActiveTab('bancario')}
           >
-            <Ionicons name="wallet" size={18} color={activeTab === 'bancario' ? '#FF6B35' : '#666'} />
+            <Ionicons name="wallet" size={18} color={activeTab === 'bancario' ? '#CC5F2A' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'bancario' && styles.tabTextActive]}>Bancario</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'seguridad' && styles.tabActive]}
             onPress={() => setActiveTab('seguridad')}
           >
-            <Ionicons name="shield" size={18} color={activeTab === 'seguridad' ? '#FF6B35' : '#666'} />
+            <Ionicons name="shield" size={18} color={activeTab === 'seguridad' ? '#CC5F2A' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'seguridad' && styles.tabTextActive]}>Seguridad</Text>
           </TouchableOpacity>
         </View>
@@ -916,7 +924,7 @@ export default function CompanyProfileScreen() {
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#CC5F2A']} />
           }
         >
           {activeTab === 'info' && renderInfoBasica()}
@@ -1013,13 +1021,13 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#FF6B35',
+    shadowColor: '#CC5F2A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -1073,7 +1081,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
   },
   tabText: {
     fontSize: 13,
@@ -1081,7 +1089,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '700',
   },
   content: {
@@ -1118,24 +1126,24 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#FF6B35',
+    borderColor: '#CC5F2A',
   },
   profileImagePlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FF6B35',
+    borderColor: '#CC5F2A',
     borderStyle: 'dashed',
   },
   editImageBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1167,10 +1175,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
   },
   editButtonText: {
-    color: '#FF6B35',
+    color: '#CC5F2A',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1193,7 +1201,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     minWidth: 80,
     alignItems: 'center',
   },
@@ -1211,7 +1219,7 @@ const styles = StyleSheet.create({
   formSectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 12,
   },
   inputGroup: {
@@ -1242,7 +1250,7 @@ const styles = StyleSheet.create({
   infoSectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1258,7 +1266,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1304,11 +1312,25 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 6,
   },
+  statNumberSmall: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#333',
+    marginTop: 6,
+    textAlign: 'center',
+  },
   statLabel: {
     fontSize: 11,
     color: '#888',
     marginTop: 2,
     textAlign: 'center',
+  },
+  statSubLabel: {
+    fontSize: 9,
+    color: '#CC5F2A',
+    marginTop: 1,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   statDivider: {
     width: 1,
@@ -1394,7 +1416,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -1430,7 +1452,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(204, 95, 42, 0.1)',
     padding: 16,
     borderRadius: 12,
     marginTop: 20,
@@ -1441,7 +1463,7 @@ const styles = StyleSheet.create({
   helpTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#CC5F2A',
     marginBottom: 4,
   },
   helpDescription: {
@@ -1497,7 +1519,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#CC5F2A',
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 16,
