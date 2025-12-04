@@ -1193,6 +1193,50 @@ export interface ReservaPendienteLiquidar {
     }>;
 }
 
+// Interfaces para el nuevo endpoint de mis reservas de pagos
+export interface ReservaPago {
+    id_reserva: number;
+    numero_reserva: string;
+    fecha: string;
+    hora: string;
+    estado: string;
+    pagado_empresa: boolean;
+    fecha_pago_empresa?: string;
+    cliente: string;
+    telefono_cliente?: string;
+    total_original: number;
+    comision_plataforma: number;
+    pago_empresa: number;
+    porcentaje_empresa: number;
+    servicios: Array<{
+        id: number;
+        nombre: string;
+        precio: number;
+    }>;
+}
+
+export interface MisReservasPagosStats {
+    total_reservas_pendientes: number;
+    total_reservas_pagadas: number;
+    valor_pendiente_bruto: number;
+    valor_pendiente_empresa: number;
+    valor_pagado_bruto: number;
+    valor_pagado_empresa: number;
+    comision_plataforma: number;
+    porcentaje_empresa: number;
+}
+
+export interface MisReservasPagosResponse {
+    reservas: ReservaPago[];
+    stats: MisReservasPagosStats;
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
 /**
  * Obtener resumen de pagos de la empresa
  */
@@ -1220,6 +1264,22 @@ export const getDetallePeriodo = async (periodoId: string): Promise<ApiResponse<
  */
 export const getReservasPendientesLiquidar = async (): Promise<ApiResponse<ReservaPendienteLiquidar[]>> => {
     return fetchApi<ReservaPendienteLiquidar[]>('/empresa/pagos/reservas-pendientes');
+};
+
+/**
+ * Obtener mis reservas de pagos (similar a Django) - pendientes y pagadas
+ */
+export const getMisReservasPagos = async (
+    estado: 'pendientes' | 'pagadas' = 'pendientes',
+    fechaDesde?: string,
+    fechaHasta?: string,
+    page: number = 1,
+    limit: number = 20
+): Promise<ApiResponse<MisReservasPagosResponse>> => {
+    let queryParams = `?estado=${estado}&page=${page}&limit=${limit}`;
+    if (fechaDesde) queryParams += `&fecha_desde=${fechaDesde}`;
+    if (fechaHasta) queryParams += `&fecha_hasta=${fechaHasta}`;
+    return fetchApi<MisReservasPagosResponse>(`/empresa/pagos/mis-reservas${queryParams}`);
 };
 
 export default {

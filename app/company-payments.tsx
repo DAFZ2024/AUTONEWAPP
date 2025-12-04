@@ -1,20 +1,16 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  getResumenPagos, 
-  getPeriodosLiquidacion, 
-  getDetallePeriodo,
-  getReservasPendientesLiquidar,
-  ResumenPagos,
-  PeriodoLiquidacion,
-  DetalleLiquidacion,
-  ReservaPendienteLiquidar
+  getMisReservasPagos,
+  MisReservasPagosResponse,
+  MisReservasPagosStats,
+  ReservaPago
 } from '@/services/api';
 
-type TabType = 'pendientes' | 'pagados';
+type TabType = 'pendientes' | 'pagadas';
 
 export default function CompanyPayments() {
   const router = useRouter();
@@ -24,45 +20,36 @@ export default function CompanyPayments() {
   const [error, setError] = useState<string | null>(null);
   
   // Datos
-  const [resumen, setResumen] = useState<ResumenPagos | null>(null);
-  const [periodosPendientes, setPeriodosPendientes] = useState<PeriodoLiquidacion[]>([]);
-  const [periodosPagados, setPeriodosPagados] = useState<PeriodoLiquidacion[]>([]);
-  const [reservasPendientes, setReservasPendientes] = useState<ReservaPendienteLiquidar[]>([]);
+  const [reservas, setReservas] = useState<ReservaPago[]>([]);
+  const [stats, setStats] = useState<MisReservasPagosStats | null>(null);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Modal de detalle
   const [modalVisible, setModalVisible] = useState(false);
-  const [periodoDetalle, setPeriodoDetalle] = useState<PeriodoLiquidacion | null>(null);
-  const [detallesLiquidacion, setDetallesLiquidacion] = useState<DetalleLiquidacion[]>([]);
-  const [loadingDetalle, setLoadingDetalle] = useState(false);
-  
-  // Modal de reservas pendientes
-  const [modalReservasVisible, setModalReservasVisible] = useState(false);
+  const [reservaDetalle, setReservaDetalle] = useState<ReservaPago | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (page: number = 1, append: boolean = false) => {
     try {
-      setError(null);
+      if (!append) setError(null);
       
-      const [resumenRes, pendientesRes, pagadosRes, reservasRes] = await Promise.all([
-        getResumenPagos(),
-        getPeriodosLiquidacion('pendiente'),
-        getPeriodosLiquidacion('pagado'),
-        getReservasPendientesLiquidar()
-      ]);
+      const response = await getMisReservasPagos(activeTab, undefined, undefined, page);
 
-      if (resumenRes.success && resumenRes.data) {
-        setResumen(resumenRes.data);
-      }
-
-      if (pendientesRes.success && pendientesRes.data) {
-        setPeriodosPendientes(pendientesRes.data);
-      }
-
-      if (pagadosRes.success && pagadosRes.data) {
-        setPeriodosPagados(pagadosRes.data);
-      }
-
-      if (reservasRes.success && reservasRes.data) {
-        setReservasPendientes(reservasRes.data);
+      if (response.success && response.data) {
+        const data = response.data;
+        if (append) {
+          setReservas(prev => [...prev, ...data.reservas]);
+        } else {
+          setReservas(data.reservas);
+        }
+        setStats(data.stats);
+        setPagination({
+          page: data.pagination.page,
+          totalPages: data.pagination.totalPages,
+          total: data.pagination.total
+        });
+      } else {
+        setError(response.message || 'Error al cargar los pagos');
       }
 
     } catch (err) {
@@ -71,33 +58,29 @@ export default function CompanyPayments() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    setLoading(true);
+    fetchData(1, false);
+  }, [activeTab]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchData();
-  }, []);
+    fetchData(1, false);
+  }, [activeTab]);
 
-  const handleVerDetalle = async (periodo: PeriodoLiquidacion) => {
+  const loadMore = () => {
+    if (loadingMore || pagination.page >= pagination.totalPages) return;
+    setLoadingMore(true);
+    fetchData(pagination.page + 1, true);
+  };
+
+  const handleVerDetalle = (reserva: ReservaPago) => {
+    setReservaDetalle(reserva);
     setModalVisible(true);
-    setLoadingDetalle(true);
-    setPeriodoDetalle(periodo);
-    
-    try {
-      const response = await getDetallePeriodo(periodo.id_periodo.toString());
-      if (response.success && response.data) {
-        setDetallesLiquidacion(response.data.detalles);
-      }
-    } catch (err) {
-      console.error('Error fetching period details:', err);
-    } finally {
-      setLoadingDetalle(false);
-    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -110,7 +93,7 @@ export default function CompanyPayments() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('es-CO', {
       day: '2-digit',
       month: 'short',
@@ -118,24 +101,8 @@ export default function CompanyPayments() {
     });
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'activo': return '#17a2b8';
-      case 'cerrado': return '#ffc107';
-      case 'pagado': return '#28a745';
-      case 'cancelado': return '#dc3545';
-      default: return '#6c757d';
-    }
-  };
-
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'activo': return 'Activo';
-      case 'cerrado': return 'Cerrado';
-      case 'pagado': return 'Pagado';
-      case 'cancelado': return 'Cancelado';
-      default: return estado;
-    }
+  const formatTime = (timeStr: string) => {
+    return timeStr?.substring(0, 5) || '';
   };
 
   if (loading) {
@@ -147,7 +114,78 @@ export default function CompanyPayments() {
     );
   }
 
-  const periodos = activeTab === 'pendientes' ? periodosPendientes : periodosPagados;
+  const renderReservaItem = ({ item }: { item: ReservaPago }) => (
+    <TouchableOpacity 
+      style={styles.reservaCard}
+      onPress={() => handleVerDetalle(item)}
+      activeOpacity={0.7}
+    >
+      {/* Header con número y estado */}
+      <View style={styles.reservaHeader}>
+        <View style={styles.reservaNumeroContainer}>
+          <Text style={styles.reservaNumero}>#{item.numero_reserva}</Text>
+          <View style={[
+            styles.estadoBadge,
+            { backgroundColor: activeTab === 'pendientes' ? '#FFF3CD' : '#D4EDDA' }
+          ]}>
+            <Text style={[
+              styles.estadoBadgeText,
+              { color: activeTab === 'pendientes' ? '#856404' : '#155724' }
+            ]}>
+              {activeTab === 'pendientes' ? 'Pendiente' : 'Pagado'}
+            </Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+      </View>
+
+      {/* Info del cliente y fecha */}
+      <View style={styles.reservaInfo}>
+        <View style={styles.infoRow}>
+          <Ionicons name="person-outline" size={14} color="#666" />
+          <Text style={styles.infoText}>{item.cliente}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="calendar-outline" size={14} color="#666" />
+          <Text style={styles.infoText}>{formatDate(item.fecha)} • {formatTime(item.hora)}</Text>
+        </View>
+        {item.servicios && item.servicios.length > 0 && (
+          <View style={styles.infoRow}>
+            <Ionicons name="car-outline" size={14} color="#666" />
+            <Text style={styles.infoText} numberOfLines={1}>
+              {item.servicios.filter(s => s.nombre).map(s => s.nombre).join(', ')}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Desglose de valores */}
+      <View style={styles.reservaMontos}>
+        <View style={styles.montoRow}>
+          <Text style={styles.montoLabel}>Valor servicio:</Text>
+          <Text style={styles.montoValue}>{formatCurrency(item.total_original)}</Text>
+        </View>
+        <View style={styles.montoRow}>
+          <Text style={styles.montoLabel}>Comisión (12%):</Text>
+          <Text style={[styles.montoValue, styles.montoComision]}>-{formatCurrency(item.comision_plataforma)}</Text>
+        </View>
+        <View style={[styles.montoRow, styles.montoRowTotal]}>
+          <Text style={styles.montoLabelTotal}>Tu pago (88%):</Text>
+          <Text style={styles.montoValueTotal}>{formatCurrency(item.pago_empresa)}</Text>
+        </View>
+      </View>
+
+      {/* Fecha de pago si está pagada */}
+      {item.pagado_empresa && item.fecha_pago_empresa && (
+        <View style={styles.fechaPagoContainer}>
+          <Ionicons name="checkmark-circle" size={14} color="#28a745" />
+          <Text style={styles.fechaPagoText}>
+            Pagado el {formatDate(item.fecha_pago_empresa)}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -182,209 +220,142 @@ export default function CompanyPayments() {
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.content}
+      {/* Resumen de estadísticas */}
+      {stats && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: '#FFF3CD' }]}>
+              <Ionicons name="time-outline" size={20} color="#856404" />
+            </View>
+            <View style={styles.statInfo}>
+              <Text style={styles.statLabel}>Pendientes de Pago</Text>
+              <Text style={styles.statCount}>{stats.total_reservas_pendientes} reservas</Text>
+              <Text style={[styles.statAmount, { color: '#856404' }]}>
+                {formatCurrency(stats.valor_pendiente_empresa)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: '#D4EDDA' }]}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#155724" />
+            </View>
+            <View style={styles.statInfo}>
+              <Text style={styles.statLabel}>Ya Pagados</Text>
+              <Text style={styles.statCount}>{stats.total_reservas_pagadas} reservas</Text>
+              <Text style={[styles.statAmount, { color: '#155724' }]}>
+                {formatCurrency(stats.valor_pagado_empresa)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Info de comisión */}
+      <View style={styles.comisionInfo}>
+        <Ionicons name="information-circle-outline" size={16} color="#0C553C" />
+        <Text style={styles.comisionText}>
+          Recibes el <Text style={styles.comisionBold}>88%</Text> de cada reserva completada. La comisión de la plataforma es del 12%.
+        </Text>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'pendientes' && styles.activeTabPendiente]}
+          onPress={() => setActiveTab('pendientes')}
+        >
+          <Ionicons 
+            name="time-outline" 
+            size={18} 
+            color={activeTab === 'pendientes' ? '#856404' : '#666'} 
+          />
+          <Text style={[styles.tabText, activeTab === 'pendientes' && styles.activeTabTextPendiente]}>
+            Pendientes
+          </Text>
+          {stats && (
+            <View style={[styles.tabBadge, activeTab === 'pendientes' && styles.tabBadgePendiente]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'pendientes' && styles.tabBadgeTextPendiente]}>
+                {stats.total_reservas_pendientes}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'pagadas' && styles.activeTabPagado]}
+          onPress={() => setActiveTab('pagadas')}
+        >
+          <Ionicons 
+            name="checkmark-done-outline" 
+            size={18} 
+            color={activeTab === 'pagadas' ? '#155724' : '#666'} 
+          />
+          <Text style={[styles.tabText, activeTab === 'pagadas' && styles.activeTabTextPagado]}>
+            Pagadas
+          </Text>
+          {stats && (
+            <View style={[styles.tabBadge, activeTab === 'pagadas' && styles.tabBadgePagado]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'pagadas' && styles.tabBadgeTextPagado]}>
+                {stats.total_reservas_pagadas}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Error */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={20} color="#856404" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => fetchData()}>
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Lista de reservas */}
+      <FlatList
+        data={reservas}
+        renderItem={renderReservaItem}
+        keyExtractor={(item) => item.id_reserva.toString()}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0C553C']} />
         }
-      >
-        {error && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={20} color="#856404" />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
-              <Text style={styles.retryText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Resumen de pagos - Rediseñado */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryHeader}>
-            <View style={styles.summaryIconBadge}>
-              <Ionicons name="stats-chart" size={16} color="#0C553C" />
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator size="small" color="#0C553C" />
             </View>
-            <Text style={styles.sectionTitle}>Resumen de Pagos</Text>
-          </View>
-          
-          {/* Cards principales - solo 2 */}
-          <View style={styles.summaryGrid}>
-            <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
-              <View style={[styles.summaryIconCircle, { backgroundColor: 'rgba(12, 85, 60, 0.15)' }]}>
-                <Ionicons name="receipt" size={18} color="#0C553C" />
-              </View>
-              <Text style={styles.summaryAmount}>{resumen?.reservasSinLiquidar?.cantidad || 0}</Text>
-              <Text style={styles.summaryLabel}>Sin Liquidar</Text>
-              {resumen?.reservasSinLiquidar?.valor ? (
-                <Text style={styles.summarySubLabel}>{formatCurrency(resumen.reservasSinLiquidar.valor)}</Text>
-              ) : (
-                <Text style={styles.summarySubLabel}>$0 pendiente</Text>
-              )}
-            </View>
-
-            <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
-              <View style={[styles.summaryIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-              </View>
-              <Text style={styles.summaryAmount}>{formatCurrency(resumen?.totalPagado || 0)}</Text>
-              <Text style={styles.summaryLabel}>Total Recibido</Text>
-              <Text style={styles.summarySubLabel}>{resumen?.periodosPagados || 0} pago(s) realizados</Text>
-            </View>
-          </View>
-
-          {resumen?.ultimoPago && (
-            <View style={styles.lastPaymentContainer}>
-              <View style={styles.lastPaymentIcon}>
-                <Ionicons name="checkmark-done" size={16} color="#10B981" />
-              </View>
-              <View style={styles.lastPaymentInfo}>
-                <Text style={styles.lastPaymentTitle}>Último pago recibido</Text>
-                <Text style={styles.lastPaymentText}>
-                  {formatCurrency(resumen.ultimoPago.total_neto || 0)} • {formatDate(resumen.ultimoPago.fecha_pago)}
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'pendientes' && styles.activeTab]}
-            onPress={() => setActiveTab('pendientes')}
-          >
+          ) : null
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
             <Ionicons 
-              name="time-outline" 
-              size={18} 
-              color={activeTab === 'pendientes' ? '#0C553C' : '#666'} 
+              name={activeTab === 'pendientes' ? 'time-outline' : 'checkmark-done-outline'} 
+              size={64} 
+              color="#ccc" 
             />
-            <Text style={[styles.tabText, activeTab === 'pendientes' && styles.activeTabText]}>
-              Pendientes ({periodosPendientes.length})
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'pendientes' 
+                ? 'No hay pagos pendientes' 
+                : 'No hay pagos realizados'}
             </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'pagados' && styles.activeTab]}
-            onPress={() => setActiveTab('pagados')}
-          >
-            <Ionicons 
-              name="checkmark-done-outline" 
-              size={18} 
-              color={activeTab === 'pagados' ? '#0C553C' : '#666'} 
-            />
-            <Text style={[styles.tabText, activeTab === 'pagados' && styles.activeTabText]}>
-              Pagados ({periodosPagados.length})
+            <Text style={styles.emptyText}>
+              {activeTab === 'pendientes' 
+                ? 'Las reservas completadas aparecerán aquí hasta que recibas el pago'
+                : 'Aquí verás el historial de pagos que ya recibiste'}
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Lista de períodos */}
-        <View style={styles.listContainer}>
-          {periodos.length > 0 && (
-            periodos.map((periodo) => (
-              <TouchableOpacity 
-                key={periodo.id_periodo} 
-                style={styles.periodoCard}
-                onPress={() => handleVerDetalle(periodo)}
-              >
-                <View style={styles.periodoHeader}>
-                  <View style={styles.periodoInfo}>
-                    <Text style={styles.periodoId}>Período #{periodo.id_periodo}</Text>
-                    <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(periodo.estado) }]}>
-                      <Text style={styles.estadoText}>{getEstadoLabel(periodo.estado)}</Text>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </View>
-                
-                <View style={styles.periodoFechas}>
-                  <View style={styles.fechaItem}>
-                    <Ionicons name="calendar-outline" size={14} color="#666" />
-                    <Text style={styles.fechaLabel}>Desde:</Text>
-                    <Text style={styles.fechaValue}>{formatDate(periodo.fecha_inicio)}</Text>
-                  </View>
-                  <View style={styles.fechaItem}>
-                    <Ionicons name="calendar" size={14} color="#666" />
-                    <Text style={styles.fechaLabel}>Hasta:</Text>
-                    <Text style={styles.fechaValue}>{formatDate(periodo.fecha_fin)}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.periodoMontos}>
-                  <View style={styles.montoItem}>
-                    <Text style={styles.montoLabel}>Total Reservas</Text>
-                    <Text style={styles.montoValue}>{formatCurrency(periodo.total_bruto)}</Text>
-                  </View>
-                  <View style={styles.montoItem}>
-                    <Text style={styles.montoLabel}>Comisión</Text>
-                    <Text style={[styles.montoValue, { color: '#dc3545' }]}>
-                      -{formatCurrency(periodo.total_comision)}
-                    </Text>
-                  </View>
-                  <View style={styles.montoItem}>
-                    <Text style={styles.montoLabel}>A Recibir</Text>
-                    <Text style={[styles.montoValue, styles.montoNeto]}>
-                      {formatCurrency(periodo.total_neto)}
-                    </Text>
-                  </View>
-                </View>
-
-                {periodo.fecha_pago && (
-                  <View style={styles.fechaPago}>
-                    <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                    <Text style={styles.fechaPagoText}>
-                      Pagado el {formatDate(periodo.fecha_pago)}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-
-        {/* Reservas pendientes de liquidar */}
-        {activeTab === 'pendientes' && reservasPendientes.length > 0 && (
-          <View style={styles.reservasPendientesContainer}>
-            <View style={styles.reservasTitleRow}>
-              <Ionicons name="list-outline" size={20} color="#0C553C" />
-              <Text style={styles.reservasTitle}>Reservas sin Liquidar</Text>
-              <View style={styles.reservasBadge}>
-                <Text style={styles.reservasBadgeText}>{reservasPendientes.length}</Text>
-              </View>
-            </View>
-            
-            <Text style={styles.reservasSubtitle}>
-              Estas reservas completadas aún no han sido incluidas en un período de liquidación
-            </Text>
-
-            {reservasPendientes.slice(0, 5).map((reserva) => (
-              <View key={reserva.id_reserva} style={styles.reservaItem}>
-                <View style={styles.reservaInfo}>
-                  <Text style={styles.reservaNumero}>#{reserva.numero_reserva}</Text>
-                  <Text style={styles.reservaFecha}>{formatDate(reserva.fecha)}</Text>
-                </View>
-                <Text style={styles.reservaMonto}>{formatCurrency(Number(reserva.total_servicio) || 0)}</Text>
-              </View>
-            ))}
-
-            {reservasPendientes.length > 5 && (
-              <TouchableOpacity 
-                style={styles.verTodasButton}
-                onPress={() => setModalReservasVisible(true)}
-              >
-                <Ionicons name="eye-outline" size={18} color="#0C553C" />
-                <Text style={styles.verTodasText}>
-                  Ver todas ({reservasPendientes.length} reservas)
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
-        )}
+        }
+      />
 
-        <View style={{ height: 30 }} />
-      </ScrollView>
-
-      {/* Modal de detalle del período */}
+      {/* Modal de detalle */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -394,87 +365,114 @@ export default function CompanyPayments() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Detalle del Período #{periodoDetalle?.id_periodo}
-              </Text>
+              <Text style={styles.modalTitle}>Detalle de Reserva</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
 
-            {loadingDetalle ? (
-              <View style={styles.modalLoading}>
-                <ActivityIndicator size="large" color="#0C553C" />
-                <Text>Cargando detalles...</Text>
-              </View>
-            ) : (
+            {reservaDetalle && (
               <ScrollView style={styles.modalBody}>
-                {periodoDetalle && (
-                  <>
-                    <View style={styles.detalleResumen}>
-                      <View style={styles.detalleRow}>
-                        <Text style={styles.detalleLabel}>Estado:</Text>
-                        <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(periodoDetalle.estado) }]}>
-                          <Text style={styles.estadoText}>{getEstadoLabel(periodoDetalle.estado)}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.detalleRow}>
-                        <Text style={styles.detalleLabel}>Período:</Text>
-                        <Text style={styles.detalleValue}>
-                          {formatDate(periodoDetalle.fecha_inicio)} - {formatDate(periodoDetalle.fecha_fin)}
-                        </Text>
-                      </View>
-                      <View style={styles.detalleRow}>
-                        <Text style={styles.detalleLabel}>Total Reservas:</Text>
-                        <Text style={styles.detalleValue}>{formatCurrency(periodoDetalle.total_bruto)}</Text>
-                      </View>
-                      <View style={styles.detalleRow}>
-                        <Text style={styles.detalleLabel}>Comisión:</Text>
-                        <Text style={[styles.detalleValue, { color: '#dc3545' }]}>
-                          -{formatCurrency(periodoDetalle.total_comision)}
-                        </Text>
-                      </View>
-                      <View style={[styles.detalleRow, styles.detalleRowNeto]}>
-                        <Text style={styles.detalleLabelNeto}>Monto Neto:</Text>
-                        <Text style={styles.detalleValueNeto}>{formatCurrency(periodoDetalle.total_neto)}</Text>
-                      </View>
+                {/* Número de reserva */}
+                <View style={styles.detalleSection}>
+                  <View style={styles.detalleHeader}>
+                    <Text style={styles.detalleNumero}>#{reservaDetalle.numero_reserva}</Text>
+                    <View style={[
+                      styles.detalleBadge,
+                      { backgroundColor: reservaDetalle.pagado_empresa ? '#D4EDDA' : '#FFF3CD' }
+                    ]}>
+                      <Text style={[
+                        styles.detalleBadgeText,
+                        { color: reservaDetalle.pagado_empresa ? '#155724' : '#856404' }
+                      ]}>
+                        {reservaDetalle.pagado_empresa ? 'Pagado' : 'Pendiente'}
+                      </Text>
                     </View>
+                  </View>
+                </View>
 
-                    <Text style={styles.detallesTitle}>
-                      Reservas Incluidas ({detallesLiquidacion.length})
+                {/* Información del cliente */}
+                <View style={styles.detalleSection}>
+                  <Text style={styles.detalleSectionTitle}>Información del Cliente</Text>
+                  <View style={styles.detalleRow}>
+                    <Ionicons name="person-outline" size={16} color="#666" />
+                    <Text style={styles.detalleText}>{reservaDetalle.cliente}</Text>
+                  </View>
+                  {reservaDetalle.telefono_cliente && (
+                    <View style={styles.detalleRow}>
+                      <Ionicons name="call-outline" size={16} color="#666" />
+                      <Text style={styles.detalleText}>{reservaDetalle.telefono_cliente}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Fecha y hora */}
+                <View style={styles.detalleSection}>
+                  <Text style={styles.detalleSectionTitle}>Fecha y Hora</Text>
+                  <View style={styles.detalleRow}>
+                    <Ionicons name="calendar-outline" size={16} color="#666" />
+                    <Text style={styles.detalleText}>{formatDate(reservaDetalle.fecha)}</Text>
+                  </View>
+                  <View style={styles.detalleRow}>
+                    <Ionicons name="time-outline" size={16} color="#666" />
+                    <Text style={styles.detalleText}>{formatTime(reservaDetalle.hora)}</Text>
+                  </View>
+                </View>
+
+                {/* Servicios */}
+                {reservaDetalle.servicios && reservaDetalle.servicios.length > 0 && (
+                  <View style={styles.detalleSection}>
+                    <Text style={styles.detalleSectionTitle}>Servicios Realizados</Text>
+                    {reservaDetalle.servicios.filter(s => s.nombre).map((servicio, index) => (
+                      <View key={index} style={styles.servicioRow}>
+                        <Text style={styles.servicioNombre}>{servicio.nombre}</Text>
+                        <Text style={styles.servicioPrecio}>{formatCurrency(servicio.precio)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Desglose de pago */}
+                <View style={[styles.detalleSection, styles.detalleSeccionPago]}>
+                  <Text style={styles.detalleSectionTitle}>Desglose del Pago</Text>
+                  
+                  <View style={styles.pagoRow}>
+                    <Text style={styles.pagoLabel}>Valor total del servicio</Text>
+                    <Text style={styles.pagoValue}>{formatCurrency(reservaDetalle.total_original)}</Text>
+                  </View>
+                  
+                  <View style={styles.pagoRow}>
+                    <Text style={styles.pagoLabel}>Comisión plataforma (12%)</Text>
+                    <Text style={[styles.pagoValue, styles.pagoComision]}>
+                      -{formatCurrency(reservaDetalle.comision_plataforma)}
                     </Text>
+                  </View>
+                  
+                  <View style={styles.pagoDivider} />
+                  
+                  <View style={styles.pagoRow}>
+                    <Text style={styles.pagoLabelTotal}>Tu pago (88%)</Text>
+                    <Text style={styles.pagoValueTotal}>{formatCurrency(reservaDetalle.pago_empresa)}</Text>
+                  </View>
+                </View>
 
-                    {detallesLiquidacion.length === 0 ? (
-                      <Text style={styles.noDetalles}>No hay detalles disponibles</Text>
-                    ) : (
-                      detallesLiquidacion.map((detalle) => (
-                        <View key={detalle.id_detalle} style={styles.detalleItem}>
-                          <View style={styles.detalleItemHeader}>
-                            <Text style={styles.detalleNumero}>#{detalle.numero_reserva}</Text>
-                            <Text style={styles.detalleFecha}>{formatDate(detalle.fecha_servicio || detalle.fecha)}</Text>
-                          </View>
-                          <View style={styles.detalleItemBody}>
-                            <View style={styles.detalleItemRow}>
-                              <Text style={styles.detalleItemLabel}>Monto:</Text>
-                              <Text style={styles.detalleItemValue}>{formatCurrency(detalle.valor_bruto)}</Text>
-                            </View>
-                            <View style={styles.detalleItemRow}>
-                              <Text style={styles.detalleItemLabel}>Comisión:</Text>
-                              <Text style={[styles.detalleItemValue, { color: '#dc3545' }]}>
-                                -{formatCurrency(detalle.valor_comision)}
-                              </Text>
-                            </View>
-                            <View style={styles.detalleItemRow}>
-                              <Text style={[styles.detalleItemLabel, { fontWeight: 'bold' }]}>Neto:</Text>
-                              <Text style={[styles.detalleItemValue, { fontWeight: 'bold', color: '#0C553C' }]}>
-                                {formatCurrency(detalle.valor_final_empresa)}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                  </>
+                {/* Fecha de pago si aplica */}
+                {reservaDetalle.pagado_empresa && reservaDetalle.fecha_pago_empresa && (
+                  <View style={styles.detallePagadoContainer}>
+                    <Ionicons name="checkmark-circle" size={20} color="#28a745" />
+                    <Text style={styles.detallePagadoText}>
+                      Pago recibido el {formatDate(reservaDetalle.fecha_pago_empresa)}
+                    </Text>
+                  </View>
+                )}
+
+                {!reservaDetalle.pagado_empresa && (
+                  <View style={styles.detallePendienteContainer}>
+                    <Ionicons name="time" size={20} color="#856404" />
+                    <Text style={styles.detallePendienteText}>
+                      Pago pendiente - Recibirás este monto una vez procesemos la liquidación
+                    </Text>
+                  </View>
                 )}
               </ScrollView>
             )}
@@ -488,79 +486,6 @@ export default function CompanyPayments() {
           </View>
         </View>
       </Modal>
-
-      {/* Modal de todas las reservas pendientes */}
-      <Modal
-        visible={modalReservasVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalReservasVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Reservas Sin Liquidar ({reservasPendientes.length})
-              </Text>
-              <TouchableOpacity onPress={() => setModalReservasVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              <View style={styles.reservasModalInfo}>
-                <Ionicons name="information-circle-outline" size={20} color="#0C553C" />
-                <Text style={styles.reservasModalInfoText}>
-                  Estas reservas completadas aún no han sido incluidas en un período de liquidación
-                </Text>
-              </View>
-
-              <View style={styles.reservasModalTotal}>
-                <Text style={styles.reservasModalTotalLabel}>Total pendiente:</Text>
-                <Text style={styles.reservasModalTotalValue}>
-                  {formatCurrency(reservasPendientes.reduce((sum, r) => sum + (Number(r.total_servicio) || 0), 0))}
-                </Text>
-              </View>
-
-              {reservasPendientes.map((reserva) => (
-                <View key={reserva.id_reserva} style={styles.reservaModalItem}>
-                  <View style={styles.reservaModalHeader}>
-                    <Text style={styles.reservaModalNumero}>#{reserva.numero_reserva}</Text>
-                    <Text style={styles.reservaModalMonto}>{formatCurrency(Number(reserva.total_servicio) || 0)}</Text>
-                  </View>
-                  <View style={styles.reservaModalDetails}>
-                    <View style={styles.reservaModalDetailRow}>
-                      <Ionicons name="calendar-outline" size={14} color="#666" />
-                      <Text style={styles.reservaModalDetailText}>{formatDate(reserva.fecha)}</Text>
-                    </View>
-                    {reserva.cliente && (
-                      <View style={styles.reservaModalDetailRow}>
-                        <Ionicons name="person-outline" size={14} color="#666" />
-                        <Text style={styles.reservaModalDetailText}>{reserva.cliente}</Text>
-                      </View>
-                    )}
-                    {reserva.servicios && reserva.servicios.length > 0 && (
-                      <View style={styles.reservaModalDetailRow}>
-                        <Ionicons name="car-outline" size={14} color="#666" />
-                        <Text style={styles.reservaModalDetailText} numberOfLines={1}>
-                          {reserva.servicios.map(s => s.nombre).join(', ')}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-
-            <TouchableOpacity 
-              style={styles.modalCloseButton}
-              onPress={() => setModalReservasVisible(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -568,20 +493,20 @@ export default function CompanyPayments() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F3',
+    backgroundColor: '#F5F7F6',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F4F3',
+    backgroundColor: '#F5F7F6',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: '#666',
   },
-  // Header Premium
+  // Header
   header: {
     paddingTop: 50,
     paddingBottom: 20,
@@ -655,201 +580,77 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  errorContainer: {
-    backgroundColor: '#fff3cd',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
+  // Stats
+  statsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
-  errorText: {
-    color: '#856404',
+  statCard: {
     flex: 1,
-  },
-  retryButton: {
-    backgroundColor: '#0C553C',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  // Resumen de Pagos
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  summaryContainer: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
-  },
-  summaryIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#E8F5F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  summaryCard: {
-    width: '48%',
-    backgroundColor: '#FAFAFA',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  summaryCardWarning: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-  },
-  summaryCardDanger: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
-  },
-  summaryCardSuccess: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#10B981',
-  },
-  summaryCardPrimary: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#0C553C',
-  },
-  summaryIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryIcon: {
+  statIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  summaryAmount: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    textAlign: 'center',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  summarySubLabel: {
-    fontSize: 9,
-    color: '#888',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  summarySubAmount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0C553C',
-    marginTop: 2,
-  },
-  // Total Bar
-  totalBar: {
-    flexDirection: 'row',
-    backgroundColor: '#0C553C',
     borderRadius: 12,
-    padding: 14,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  totalBarItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  totalBarLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 4,
-  },
-  totalBarValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  totalBarDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  // Último pago
-  lastPaymentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  lastPaymentIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  lastPaymentInfo: {
+  statInfo: {
     flex: 1,
   },
-  lastPaymentTitle: {
-    fontSize: 10,
+  statLabel: {
+    fontSize: 11,
     color: '#666',
     marginBottom: 2,
   },
-  lastPaymentText: {
-    fontSize: 13,
-    color: '#10B981',
-    fontWeight: '600',
+  statCount: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 2,
   },
+  statAmount: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  // Comision info
+  comisionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5F0',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  comisionText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#0C553C',
+  },
+  comisionBold: {
+    fontWeight: 'bold',
+  },
+  // Tabs
   tabsContainer: {
     flexDirection: 'row',
+    marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: 20,
-    padding: 5,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -863,59 +664,110 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     gap: 6,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  activeTab: {
-    backgroundColor: 'rgba(12, 85, 60, 0.1)',
+  activeTabPendiente: {
+    backgroundColor: '#FFF3CD',
+  },
+  activeTabPagado: {
+    backgroundColor: '#D4EDDA',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
     fontWeight: '500',
   },
-  activeTabText: {
-    color: '#0C553C',
+  activeTabTextPendiente: {
+    color: '#856404',
     fontWeight: 'bold',
   },
-  listContainer: {
-    marginBottom: 20,
+  activeTabTextPagado: {
+    color: '#155724',
+    fontWeight: 'bold',
   },
-  emptyContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 40,
+  tabBadge: {
+    backgroundColor: '#e0e0e0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  tabBadgePendiente: {
+    backgroundColor: '#856404',
+  },
+  tabBadgePagado: {
+    backgroundColor: '#155724',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  tabBadgeTextPendiente: {
+    color: '#fff',
+  },
+  tabBadgeTextPagado: {
+    color: '#fff',
+  },
+  // Error
+  errorContainer: {
+    backgroundColor: '#fff3cd',
+    padding: 15,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
   },
-  emptyText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
+  errorText: {
+    color: '#856404',
+    flex: 1,
+    fontSize: 13,
   },
-  periodoCard: {
+  retryButton: {
+    backgroundColor: '#0C553C',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  // List
+  listContainer: {
+    padding: 16,
+    paddingTop: 4,
+  },
+  loadingMore: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  // Reserva card
+  reservaCard: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 18,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  periodoHeader: {
+  reservaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  periodoInfo: {
+  reservaNumeroContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  periodoId: {
+  reservaNumero: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -923,231 +775,100 @@ const styles = StyleSheet.create({
   estadoBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
-  estadoText: {
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: 'bold',
+  estadoBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  periodoFechas: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  reservaInfo: {
     marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    gap: 6,
   },
-  fechaItem: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
-  fechaLabel: {
-    fontSize: 12,
+  infoText: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
+  },
+  reservaMontos: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+  },
+  montoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  montoLabel: {
+    fontSize: 13,
     color: '#666',
   },
-  fechaValue: {
-    fontSize: 12,
+  montoValue: {
+    fontSize: 13,
     color: '#333',
     fontWeight: '500',
   },
-  periodoMontos: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  montoComision: {
+    color: '#DC3545',
   },
-  montoItem: {
-    alignItems: 'center',
-    flex: 1,
+  montoRowTotal: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    paddingTop: 8,
+    marginTop: 4,
   },
-  montoLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 3,
-  },
-  montoValue: {
+  montoLabelTotal: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  montoNeto: {
-    color: '#0C553C',
     fontWeight: 'bold',
+    color: '#0C553C',
   },
-  fechaPago: {
+  montoValueTotal: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0C553C',
+  },
+  fechaPagoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#E8E8E8',
     justifyContent: 'center',
   },
   fechaPagoText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#28a745',
     fontWeight: '500',
   },
-  reservasPendientesContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  reservasTitleRow: {
-    flexDirection: 'row',
+  // Empty
+  emptyContainer: {
     alignItems: 'center',
-    gap: 10,
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
     marginBottom: 8,
   },
-  reservasTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0C553C',
-    flex: 1,
-  },
-  reservasBadge: {
-    backgroundColor: '#0C553C',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  reservasBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  reservasSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 15,
-  },
-  reservaItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  reservaInfo: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  reservaNumero: {
+  emptyText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  reservaFecha: {
-    fontSize: 12,
     color: '#666',
-  },
-  reservaMonto: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0C553C',
-  },
-  verMasText: {
-    fontSize: 13,
-    color: '#0C553C',
     textAlign: 'center',
-    marginTop: 12,
-    fontWeight: '500',
+    lineHeight: 20,
   },
-  verTodasButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-  },
-  verTodasText: {
-    fontSize: 14,
-    color: '#0C553C',
-    fontWeight: '600',
-  },
-  reservasModalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-    gap: 10,
-  },
-  reservasModalInfoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#0C553C',
-  },
-  reservasModalTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0C553C',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  reservasModalTotalLabel: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '500',
-  },
-  reservasModalTotalValue: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  reservaModalItem: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: '#0C553C',
-  },
-  reservaModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  reservaModalNumero: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  reservaModalMonto: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0C553C',
-  },
-  reservaModalDetails: {
-    gap: 6,
-  },
-  reservaModalDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reservaModalDetailText: {
-    fontSize: 13,
-    color: '#666',
-    flex: 1,
-  },
-  // Modal styles
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1155,9 +876,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1172,106 +893,138 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  modalLoading: {
-    padding: 40,
-    alignItems: 'center',
-    gap: 10,
-  },
   modalBody: {
     padding: 20,
-    maxHeight: 400,
   },
-  detalleResumen: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 15,
+  detalleSection: {
     marginBottom: 20,
   },
+  detalleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detalleNumero: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#0C553C',
+  },
+  detalleBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  detalleBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  detalleSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
   detalleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  detalleText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  servicioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  servicioNombre: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  servicioPrecio: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0C553C',
+  },
+  detalleSeccionPago: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+  },
+  pagoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  detalleLabel: {
+  pagoLabel: {
     fontSize: 14,
     color: '#666',
   },
-  detalleValue: {
+  pagoValue: {
     fontSize: 14,
-    fontWeight: '500',
     color: '#333',
+    fontWeight: '500',
   },
-  detalleRowNeto: {
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 10,
-    marginTop: 5,
-    marginBottom: 0,
+  pagoComision: {
+    color: '#DC3545',
   },
-  detalleLabelNeto: {
+  pagoDivider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 10,
+  },
+  pagoLabelTotal: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#0C553C',
   },
-  detalleValueNeto: {
+  pagoValueTotal: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#0C553C',
   },
-  detallesTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  noDetalles: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    padding: 20,
-  },
-  detalleItem: {
-    backgroundColor: '#f8f9fa',
+  detallePagadoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#D4EDDA',
+    padding: 14,
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: '#0C553C',
+    marginTop: 10,
   },
-  detalleItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  detalleNumero: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  detalleFecha: {
-    fontSize: 12,
-    color: '#666',
-  },
-  detalleItemBody: {},
-  detalleItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  detalleItemLabel: {
+  detallePagadoText: {
     fontSize: 13,
-    color: '#666',
+    color: '#155724',
+    fontWeight: '500',
+    flex: 1,
   },
-  detalleItemValue: {
+  detallePendienteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF3CD',
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  detallePendienteText: {
     fontSize: 13,
-    color: '#333',
+    color: '#856404',
+    fontWeight: '500',
+    flex: 1,
   },
   modalCloseButton: {
     backgroundColor: '#0C553C',
     margin: 20,
-    padding: 15,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   modalCloseButtonText: {
