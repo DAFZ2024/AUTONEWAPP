@@ -16,7 +16,7 @@ export default function ClientDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [cancelledCount, setCancelledCount] = useState(0);
-  const [nextAppointment, setNextAppointment] = useState<{fecha: string, hora: string} | null>(null);
+  const [nextAppointment, setNextAppointment] = useState<Reserva | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [miSuscripcion, setMiSuscripcion] = useState<Suscripcion | null>(null);
@@ -144,18 +144,54 @@ export default function ClientDashboard() {
         setCompletedCount(completed);
         setCancelledCount(cancelled);
         
-        // Encontrar próxima cita
-        if (pendientes.length > 0) {
-          const sorted = pendientes.sort((a, b) => {
-            const dateA = new Date(a.fecha.toString().split('T')[0] + 'T' + a.hora.toString().substring(0, 5));
-            const dateB = new Date(b.fecha.toString().split('T')[0] + 'T' + b.hora.toString().substring(0, 5));
-            return dateA.getTime() - dateB.getTime();
-          });
-          const next = sorted[0];
-          setNextAppointment({
-            fecha: next.fecha.toString().split('T')[0],
-            hora: next.hora.toString().substring(0, 5)
-          });
+        // Encontrar la reserva más próxima
+        // Priorizar reservas en estado pendiente/confirmada/en_proceso (pendientes)
+        const now = Date.now();
+        const parseReservaDate = (r: any) => {
+          try {
+            const fechaOnly = r.fecha?.toString().split('T')[0] || new Date(r.fecha).toISOString().split('T')[0];
+            const hora = (r.hora || '').toString().substring(0, 5) || '12:00';
+            const d = new Date(`${fechaOnly}T${hora}`);
+            if (isNaN(d.getTime())) return null;
+            return d;
+          } catch (e) {
+            const d = new Date(r.fecha);
+            return isNaN(d.getTime()) ? null : d;
+          }
+        };
+
+        const buildWithDates = (list: any[]) => list
+          .map(r => ({ reserva: r, date: parseReservaDate(r) }))
+          .filter(x => x.date !== null) as { reserva: Reserva; date: Date }[];
+
+        const pendientesList = reservas.filter((r: any) => ['pendiente', 'confirmada', 'en_proceso'].includes(r.estado));
+
+        // 1) Buscar próximas futuras dentro de pendientes
+        let chosen: { reserva: Reserva; date: Date } | null = null;
+        const pendientesWithDates = buildWithDates(pendientesList);
+        const futurasPendientes = pendientesWithDates.filter(x => x.date.getTime() >= now).sort((a, b) => a.date.getTime() - b.date.getTime());
+        if (futurasPendientes.length > 0) {
+          chosen = futurasPendientes[0];
+        } else if (pendientesWithDates.length > 0) {
+          // 2) Si no hay futuras pendientes, elegir la pendiente más cercana (pasada o futura)
+          pendientesWithDates.sort((a, b) => Math.abs(a.date.getTime() - now) - Math.abs(b.date.getTime() - now));
+          chosen = pendientesWithDates[0];
+        } else {
+          // 3) Si no hay pendientes, buscar en todas las reservas: primero futuras, luego la más cercana
+          const allWithDates = buildWithDates(reservas);
+          const futurasAll = allWithDates.filter(x => x.date.getTime() >= now).sort((a, b) => a.date.getTime() - b.date.getTime());
+          if (futurasAll.length > 0) {
+            chosen = futurasAll[0];
+          } else if (allWithDates.length > 0) {
+            allWithDates.sort((a, b) => Math.abs(a.date.getTime() - now) - Math.abs(b.date.getTime() - now));
+            chosen = allWithDates[0];
+          } else {
+            chosen = null;
+          }
+        }
+
+        if (chosen) {
+          setNextAppointment(chosen.reserva as Reserva);
         } else {
           setNextAppointment(null);
         }
@@ -296,26 +332,36 @@ export default function ClientDashboard() {
             </View>
             <View style={styles.nextAppointmentContent}>
               <Text style={styles.nextAppointmentTitle}>Próxima Cita</Text>
-              {nextAppointment ? (
-                <View style={styles.nextAppointmentInfo}>
-                  <View style={styles.nextAppointmentDate}>
-                    <Ionicons name="calendar-outline" size={14} color="#0C553C" />
-                    <Text style={styles.nextAppointmentDateText}>
-                      {new Date(nextAppointment.fecha + 'T12:00:00').toLocaleDateString('es-ES', { 
-                        weekday: 'short', 
-                        day: 'numeric', 
-                        month: 'short' 
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.nextAppointmentTime}>
-                    <Ionicons name="time-outline" size={14} color="#0C553C" />
-                    <Text style={styles.nextAppointmentTimeText}>{nextAppointment.hora}</Text>
-                  </View>
-                </View>
-              ) : (
-                <Text style={styles.nextAppointmentEmpty}>No tienes citas programadas</Text>
-              )}
+                  {nextAppointment ? (
+                    <View style={styles.nextAppointmentInfoColumn}>
+                      <View style={styles.nextAppointmentRow}>
+                        <View style={styles.nextAppointmentDate}>
+                          <Ionicons name="calendar-outline" size={14} color="#0C553C" />
+                          <Text style={styles.nextAppointmentDateText}>
+                            {new Date(nextAppointment.fecha.toString().split('T')[0] + 'T' + (nextAppointment.hora || '12:00').substring(0,5)).toLocaleDateString('es-ES', { 
+                              weekday: 'short', 
+                              day: 'numeric', 
+                              month: 'short' 
+                            })}
+                          </Text>
+                        </View>
+                        <View style={styles.nextAppointmentTime}>
+                          <Ionicons name="time-outline" size={14} color="#0C553C" />
+                          <Text style={styles.nextAppointmentTimeText}>{(nextAppointment.hora || '').toString().substring(0,5)}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.nextAppointmentRowMeta}>
+                        {nextAppointment.numero_reserva && (
+                          <Text style={styles.nextAppointmentNumber}>Nº #{nextAppointment.numero_reserva}</Text>
+                        )}
+                        {nextAppointment.nombre_empresa && (
+                          <Text style={styles.nextAppointmentCompany} numberOfLines={1}>{nextAppointment.nombre_empresa}</Text>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={styles.nextAppointmentEmpty}>No tienes citas programadas</Text>
+                  )}
             </View>
             <View style={styles.nextAppointmentArrow}>
               <Ionicons name="chevron-forward" size={20} color="#0C553C" />
@@ -699,6 +745,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#9CA3AF',
     fontStyle: 'italic',
+  },
+  nextAppointmentInfoColumn: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  nextAppointmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+  },
+  nextAppointmentRowMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  nextAppointmentNumber: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  nextAppointmentCompany: {
+    fontSize: 12,
+    color: '#6B7280',
+    flex: 1,
   },
   nextAppointmentArrow: {
     width: 28,

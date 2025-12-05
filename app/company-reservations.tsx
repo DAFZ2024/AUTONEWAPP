@@ -1,9 +1,13 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SectionList, ScrollView, Dimensions, ActivityIndicator, RefreshControl, Alert, Modal, Image } from 'react-native';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SectionList, ScrollView, Dimensions, ActivityIndicator, RefreshControl, Alert, Modal, Image, AppState, Vibration } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getReservasEmpresa, actualizarEstadoReserva, getReservaParaQR, ReservaEmpresa } from '@/services/api';
+
+// Intervalo de actualización mientras se muestra el QR (4 segundos)
+const QR_POLLING_INTERVAL = 4000;
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +40,109 @@ export default function CompanyReservations() {
   const [qrData, setQrData] = useState<string | null>(null);
   const [qrReserva, setQrReserva] = useState<Reservation | null>(null);
   const [loadingQR, setLoadingQR] = useState(false);
+  
+  // Estado para modal de confirmación exitosa
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [confirmedReserva, setConfirmedReserva] = useState<Reservation | null>(null);
+  
+  // Ref para el intervalo de polling del QR
+  const qrPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Función para verificar si la reserva fue confirmada (usada en polling del QR)
+  const checkReservaStatus = useCallback(async () => {
+    if (!qrReserva) return;
+    
+    try {
+      const response = await getReservasEmpresa();
+      
+      if (response.success && response.data) {
+        const reservaActualizada = response.data.reservas.find(
+          (r: ReservaEmpresa) => r.id_reserva.toString() === qrReserva.id
+        );
+        
+        if (reservaActualizada && reservaActualizada.estado === 'completado') {
+          // ¡La reserva fue confirmada!
+          // Vibrar el dispositivo para notificar
+          Vibration.vibrate([0, 300, 100, 300]);
+          
+          // Detener el polling
+          if (qrPollingRef.current) {
+            clearInterval(qrPollingRef.current);
+            qrPollingRef.current = null;
+          }
+          
+          // Cerrar modal QR y mostrar modal de éxito
+          setQrModalVisible(false);
+          setConfirmedReserva({
+            ...qrReserva,
+            status: 'completado'
+          });
+          setShowSuccessModal(true);
+          
+          // Actualizar la lista de reservas
+          const transformedReservations: Reservation[] = response.data.reservas.map((r: ReservaEmpresa) => {
+            let fechaNormalizada = '';
+            if (r.fecha) {
+              if (r.fecha.includes('T')) {
+                fechaNormalizada = r.fecha.split('T')[0];
+              } else {
+                fechaNormalizada = r.fecha;
+              }
+            }
+            
+            return {
+              id: r.id_reserva.toString(),
+              numero_reserva: r.numero_reserva,
+              service: r.servicios?.map((s: any) => s.nombre_servicio).join(', ') || 'Sin servicios',
+              client: r.nombre_cliente || 'Cliente',
+              date: fechaNormalizada,
+              time: r.hora?.substring(0, 5) || '00:00',
+              status: r.estado as 'pendiente' | 'completado' | 'cancelada' | 'vencida',
+              price: parseFloat(r.total?.toString() || '0'),
+              vehicle: r.placa_vehiculo || r.tipo_vehiculo || 'No especificado',
+              telefono: r.telefono_cliente,
+              email: r.email_cliente,
+              servicios: r.servicios,
+            };
+          });
+          setReservations(transformedReservations);
+          
+          // Cerrar modal de éxito después de 3 segundos
+          setTimeout(() => {
+            setShowSuccessModal(false);
+            setConfirmedReserva(null);
+            setQrReserva(null);
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking reservation status:', err);
+    }
+  }, [qrReserva]);
+  
+  // Efecto para iniciar/detener el polling cuando el modal QR está visible
+  useEffect(() => {
+    if (qrModalVisible && qrReserva) {
+      // Iniciar polling cada 4 segundos
+      qrPollingRef.current = setInterval(checkReservaStatus, QR_POLLING_INTERVAL);
+      console.log('[QR Polling] Iniciado para reserva:', qrReserva.id);
+    } else {
+      // Detener polling cuando se cierra el modal
+      if (qrPollingRef.current) {
+        clearInterval(qrPollingRef.current);
+        qrPollingRef.current = null;
+        console.log('[QR Polling] Detenido');
+      }
+    }
+    
+    // Cleanup al desmontar
+    return () => {
+      if (qrPollingRef.current) {
+        clearInterval(qrPollingRef.current);
+        qrPollingRef.current = null;
+      }
+    };
+  }, [qrModalVisible, qrReserva, checkReservaStatus]);
 
   const fetchReservations = async () => {
     try {
@@ -658,6 +765,65 @@ export default function CompanyReservations() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Reserva Confirmada */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContainer}>
+            <LinearGradient
+              colors={['#10B981', '#059669', '#047857']}
+              style={styles.successModalGradient}
+            >
+              {/* Círculos decorativos */}
+              <View style={styles.successCircle1} />
+              <View style={styles.successCircle2} />
+              
+              {/* Ícono de éxito */}
+              <View style={styles.successIconContainer}>
+                <View style={styles.successIconOuter}>
+                  <View style={styles.successIconInner}>
+                    <Ionicons name="checkmark" size={50} color="#10B981" />
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.successTitle}>¡Reserva Confirmada!</Text>
+              <Text style={styles.successSubtitle}>
+                El cliente ha escaneado el código QR
+              </Text>
+
+              {confirmedReserva && (
+                <View style={styles.successDetails}>
+                  <View style={styles.successDetailRow}>
+                    <Ionicons name="person" size={16} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.successDetailText}>{confirmedReserva.client}</Text>
+                  </View>
+                  <View style={styles.successDetailRow}>
+                    <Ionicons name="car" size={16} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.successDetailText}>{confirmedReserva.vehicle}</Text>
+                  </View>
+                  <View style={styles.successDetailRow}>
+                    <Ionicons name="pricetag" size={16} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.successDetailText}>{confirmedReserva.service}</Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.successPriceContainer}>
+                <Text style={styles.successPriceLabel}>Total cobrado</Text>
+                <Text style={styles.successPriceValue}>
+                  {confirmedReserva ? formatCurrency(confirmedReserva.price) : '$0'}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -776,4 +942,21 @@ const styles = StyleSheet.create({
   expiredMessageContent: { flex: 1 },
   expiredMessageTitle: { fontSize: 14, fontWeight: '700', color: '#E67E22', marginBottom: 4 },
   expiredMessageText: { fontSize: 12, color: '#B7791A', lineHeight: 18 },
+  // Estilos para modal de confirmación exitosa
+  successModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  successModalContainer: { width: width * 0.85, maxWidth: 350, borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.5, shadowRadius: 25, elevation: 25 },
+  successModalGradient: { padding: 35, alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  successCircle1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255, 255, 255, 0.1)', top: -60, right: -60 },
+  successCircle2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255, 255, 255, 0.08)', bottom: -40, left: -40 },
+  successIconContainer: { marginBottom: 20 },
+  successIconOuter: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255, 255, 255, 0.25)', justifyContent: 'center', alignItems: 'center' },
+  successIconInner: { width: 75, height: 75, borderRadius: 37.5, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 10 },
+  successTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 8, textShadowColor: 'rgba(0, 0, 0, 0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  successSubtitle: { fontSize: 15, color: 'rgba(255, 255, 255, 0.9)', textAlign: 'center', marginBottom: 20 },
+  successDetails: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 12, padding: 14, width: '100%', marginBottom: 20 },
+  successDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  successDetailText: { color: '#fff', fontSize: 14, fontWeight: '500', flex: 1 },
+  successPriceContainer: { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12, padding: 16, alignItems: 'center', width: '100%' },
+  successPriceLabel: { color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, marginBottom: 4 },
+  successPriceValue: { color: '#fff', fontSize: 28, fontWeight: 'bold' },
 });

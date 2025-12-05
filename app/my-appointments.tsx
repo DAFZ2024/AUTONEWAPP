@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, SectionList, ActivityIndicator, Alert, RefreshControl, ScrollView, Linking, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, SectionList, ActivityIndicator, Alert, RefreshControl, ScrollView, Linking, Platform, Vibration } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva, getHorariosDisponibles, reagendarReserva, calcularRecargoRecuperacion, recuperarReservaVencida } from '../services/api';
 
 export default function MyAppointments() {
@@ -63,6 +64,15 @@ export default function MyAppointments() {
   const [showRecoverSchedule, setShowRecoverSchedule] = useState(false);
   const [recoverDate, setRecoverDate] = useState('');
   const [recoverTime, setRecoverTime] = useState('');
+
+  // Estado para modal de éxito al escanear QR
+  const [showQRSuccessModal, setShowQRSuccessModal] = useState(false);
+  const [qrSuccessData, setQrSuccessData] = useState<{
+    numeroReserva: string;
+    empresa: string;
+    servicios: string;
+    total: number;
+  } | null>(null);
 
   const fetchReservations = async () => {
     console.log('--- Iniciando fetchReservations ---');
@@ -629,19 +639,32 @@ export default function MyAppointments() {
       const displayNumero = qrData.numero_reserva || `#${qrData.id_reserva}` || data;
       
       if (response.success) {
-        Alert.alert(
-          'Servicio Completado',
-          `Tu reserva ${displayNumero} ha sido marcada como completada.\n\n¡Gracias por usar nuestro servicio!`,
-          [
-            { 
-              text: 'OK', 
-              onPress: () => {
-                setShowQRScanner(false);
-                fetchReservations(); // Recargar reservas
-              }
-            }
-          ]
-        );
+        // Vibrar para notificar éxito
+        Vibration.vibrate([0, 200, 100, 200]);
+        
+        // Cerrar el escáner
+        setShowQRScanner(false);
+        
+        // Obtener datos de la reserva desde la respuesta
+        const reservaData = response.data;
+        setQrSuccessData({
+          numeroReserva: reservaData?.numero_reserva || displayNumero,
+          empresa: reservaData?.empresa || 'Lavadero',
+          servicios: 'Servicio confirmado',
+          total: 0,
+        });
+        
+        // Mostrar modal de éxito
+        setShowQRSuccessModal(true);
+        
+        // Recargar reservas
+        fetchReservations();
+        
+        // Auto-cerrar después de 4 segundos
+        setTimeout(() => {
+          setShowQRSuccessModal(false);
+          setQrSuccessData(null);
+        }, 4000);
       } else {
         Alert.alert(
           'Error',
@@ -734,6 +757,9 @@ export default function MyAppointments() {
               <Text style={styles.cardServiceName} numberOfLines={1}>
                 {nombreServicio} {item.servicios && item.servicios.length > 1 ? `+${item.servicios.length - 1}` : ''}
               </Text>
+              {item.numero_reserva && (
+                <Text style={styles.cardReservaNumber}>#{item.numero_reserva}</Text>
+              )}
             </View>
             <View style={[styles.cardStatusBadge, { backgroundColor: statusConfig.bg }]}>
               <Ionicons name={statusConfig.icon} size={12} color={statusConfig.color} />
@@ -1705,6 +1731,76 @@ export default function MyAppointments() {
         </View>
       </Modal>
 
+      {/* Modal de Éxito al Escanear QR */}
+      <Modal
+        visible={showQRSuccessModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.qrSuccessOverlay}>
+          <View style={styles.qrSuccessContainer}>
+            <LinearGradient
+              colors={['#10B981', '#059669', '#047857']}
+              style={styles.qrSuccessGradient}
+            >
+              {/* Círculos decorativos */}
+              <View style={styles.qrSuccessCircle1} />
+              <View style={styles.qrSuccessCircle2} />
+              <View style={styles.qrSuccessCircle3} />
+              
+              {/* Ícono de éxito animado */}
+              <View style={styles.qrSuccessIconContainer}>
+                <View style={styles.qrSuccessIconOuter}>
+                  <View style={styles.qrSuccessIconInner}>
+                    <Ionicons name="checkmark-circle" size={60} color="#10B981" />
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.qrSuccessTitle}>¡Servicio Completado!</Text>
+              <Text style={styles.qrSuccessSubtitle}>
+                Tu reserva ha sido confirmada exitosamente
+              </Text>
+
+              {qrSuccessData && (
+                <View style={styles.qrSuccessDetails}>
+                  <View style={styles.qrSuccessDetailRow}>
+                    <Ionicons name="receipt-outline" size={18} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.qrSuccessDetailText}>Reserva: {qrSuccessData.numeroReserva}</Text>
+                  </View>
+                  <View style={styles.qrSuccessDetailRow}>
+                    <Ionicons name="business-outline" size={18} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.qrSuccessDetailText}>{qrSuccessData.empresa}</Text>
+                  </View>
+                  {qrSuccessData.servicios && (
+                    <View style={styles.qrSuccessDetailRow}>
+                      <Ionicons name="car-sport-outline" size={18} color="rgba(255,255,255,0.9)" />
+                      <Text style={styles.qrSuccessDetailText}>{qrSuccessData.servicios}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.qrSuccessThanks}>
+                <Ionicons name="heart" size={20} color="#fff" />
+                <Text style={styles.qrSuccessThanksText}>¡Gracias por usar AutoNew!</Text>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.qrSuccessButton}
+                onPress={() => {
+                  setShowQRSuccessModal(false);
+                  setQrSuccessData(null);
+                }}
+              >
+                <Text style={styles.qrSuccessButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal de Confirmación de Pago para Recuperar Reserva Vencida */}
       <Modal visible={showRecoverModal} animationType="fade" transparent>
         <View style={styles.resultModalOverlay}>
@@ -2107,6 +2203,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a1a1a',
     flex: 1,
+  },
+  cardReservaNumber: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    fontWeight: '600',
   },
   cardStatusBadge: {
     flexDirection: 'row',
@@ -3543,5 +3645,147 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 12,
     textAlign: 'center',
+  },
+  // Estilos para modal de éxito QR
+  qrSuccessOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  qrSuccessContainer: {
+    width: '90%',
+    maxWidth: 360,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 30,
+  },
+  qrSuccessGradient: {
+    padding: 32,
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  qrSuccessCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -80,
+    right: -80,
+  },
+  qrSuccessCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -50,
+    left: -50,
+  },
+  qrSuccessCircle3: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    top: 120,
+    right: -20,
+  },
+  qrSuccessIconContainer: {
+    marginBottom: 24,
+  },
+  qrSuccessIconOuter: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrSuccessIconInner: {
+    width: 85,
+    height: 85,
+    borderRadius: 42.5,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  qrSuccessTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  qrSuccessSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  qrSuccessDetails: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+    width: '100%',
+    marginBottom: 20,
+  },
+  qrSuccessDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  qrSuccessDetailText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  qrSuccessThanks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  qrSuccessThanksText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  qrSuccessButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  qrSuccessButtonText: {
+    color: '#059669',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
