@@ -448,6 +448,28 @@ export default function SubscriptionPlans() {
                     )}
                   </View>
 
+                  {/* Servicios incluidos con descuento */}
+                  {plan.servicios_incluidos && plan.servicios_incluidos.length > 0 && (
+                    <View style={styles.planServicesSection}>
+                      <Text style={styles.planServicesSectionTitle}>Servicios con descuento:</Text>
+                      {plan.servicios_incluidos.map((servicio, idx) => (
+                        <View key={idx} style={styles.planServiceRow}>
+                          <View style={styles.planServiceInfo}>
+                            <Ionicons name="car-sport-outline" size={14} color="#0C553C" />
+                            <Text style={styles.planServiceName} numberOfLines={1}>{servicio.nombre_servicio}</Text>
+                          </View>
+                          {servicio.porcentaje_descuento > 0 && (
+                            <View style={[styles.planDiscountBadge, { backgroundColor: `${planColor}20` }]}>
+                              <Text style={[styles.planDiscountText, { color: planColor }]}>
+                                -{servicio.porcentaje_descuento}%
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
                   {!isCurrentPlan && (
                     <View style={[styles.selectPlanBtn, { backgroundColor: planColor }]}>
                       <Text style={styles.selectPlanBtnText}>Elegir este plan</Text>
@@ -1174,5 +1196,48 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Estilos para servicios incluidos en planes
+  planServicesSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  planServicesSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  planServiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  planServiceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 6,
+  },
+  planServiceName: {
+    fontSize: 12,
+    color: '#333',
+    flex: 1,
+  },
+  planDiscountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  planDiscountText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

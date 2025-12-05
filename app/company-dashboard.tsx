@@ -23,6 +23,30 @@ export default function CompanyDashboard() {
     proximasCitas: []
   });
 
+  // Función para limpiar URL duplicada de Cloudinary
+  const cleanCloudinaryUrl = (url: string | null | undefined): string | null => {
+    if (!url || typeof url !== 'string') return null;
+    
+    let cleanUrl = url.trim();
+    if (!cleanUrl) return null;
+    
+    // Detectar y corregir URL duplicada de Cloudinary
+    const cloudinaryUploadPattern = 'cloudinary.com/ducn8dj4o/image/upload/';
+    const firstIndex = cleanUrl.indexOf(cloudinaryUploadPattern);
+    const lastIndex = cleanUrl.lastIndexOf(cloudinaryUploadPattern);
+    
+    if (firstIndex !== -1 && lastIndex !== -1 && firstIndex !== lastIndex) {
+      const correctPart = cleanUrl.substring(lastIndex);
+      cleanUrl = 'https://res.' + correctPart;
+      console.log('[Company] 🔧 URL corregida:', cleanUrl);
+    }
+    
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
+    }
+    return null;
+  };
+
   const fetchData = async () => {
     try {
       setError(null);
@@ -30,6 +54,14 @@ export default function CompanyDashboard() {
       // Obtener datos de la empresa
       const empresaData = await getEmpresa();
       if (empresaData) {
+        // Limpiar la URL de la imagen si existe
+        if (empresaData.profile_image) {
+          const cleanedUrl = cleanCloudinaryUrl(empresaData.profile_image);
+          if (cleanedUrl) {
+            empresaData.profile_image = cleanedUrl;
+            console.log('[Company] ✅ Imagen de empresa:', cleanedUrl);
+          }
+        }
         setEmpresa(empresaData);
       }
 
@@ -203,53 +235,8 @@ export default function CompanyDashboard() {
           </View>
         )}
 
-        {/* Panel de Control Compacto */}
+        {/* Resumen del Mes */}
         <View style={styles.panelControlContainer}>
-          <View style={styles.panelHeader}>
-            <View style={styles.panelTitleRow}>
-              <View style={styles.panelIconBadge}>
-                <Ionicons name="grid" size={16} color="#CC5F2A" />
-              </View>
-              <Text style={styles.panelTitle}>Panel de Control</Text>
-            </View>
-          </View>
-          
-          {/* Stats Grid Compacto */}
-          <View style={styles.statsGrid}>
-            <View style={styles.statMiniCard}>
-              <View style={[styles.statMiniIcon, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="calendar" size={16} color="#3B82F6" />
-              </View>
-              <Text style={styles.statMiniNumber}>{stats.citasHoy}</Text>
-              <Text style={styles.statMiniLabel}>Citas Hoy</Text>
-            </View>
-            
-            <View style={styles.statMiniCard}>
-              <View style={[styles.statMiniIcon, { backgroundColor: '#ECFDF5' }]}>
-                <Ionicons name="cash" size={16} color="#10B981" />
-              </View>
-              <Text style={styles.statMiniNumber}>{formatCurrency(stats.ingresosHoy)}</Text>
-              <Text style={styles.statMiniLabel}>Ingresos Hoy</Text>
-            </View>
-            
-            <View style={styles.statMiniCard}>
-              <View style={[styles.statMiniIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="people" size={16} color="#F59E0B" />
-              </View>
-              <Text style={styles.statMiniNumber}>{stats.clientesActivos}</Text>
-              <Text style={styles.statMiniLabel}>Clientes</Text>
-            </View>
-            
-            <View style={styles.statMiniCard}>
-              <View style={[styles.statMiniIcon, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="heart" size={16} color="#EF4444" />
-              </View>
-              <Text style={styles.statMiniNumber}>{stats.satisfaccion}%</Text>
-              <Text style={styles.statMiniLabel}>Satisfacción</Text>
-            </View>
-          </View>
-
-          {/* Resumen del Mes Compacto */}
           <View style={styles.monthlyCompact}>
             <View style={styles.monthlyCompactHeader}>
               <Ionicons name="trending-up" size={14} color="#CC5F2A" />

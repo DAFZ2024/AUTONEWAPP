@@ -63,10 +63,42 @@ export default function CompanyProfileScreen() {
   const [mostrarContrasenas, setMostrarContrasenas] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Función para limpiar URL duplicada de Cloudinary
+  const cleanCloudinaryUrl = (url: string | null | undefined): string | null => {
+    if (!url || typeof url !== 'string') return null;
+    
+    let cleanUrl = url.trim();
+    if (!cleanUrl) return null;
+    
+    // Detectar y corregir URL duplicada de Cloudinary
+    const cloudinaryUploadPattern = 'cloudinary.com/ducn8dj4o/image/upload/';
+    const firstIndex = cleanUrl.indexOf(cloudinaryUploadPattern);
+    const lastIndex = cleanUrl.lastIndexOf(cloudinaryUploadPattern);
+    
+    if (firstIndex !== -1 && lastIndex !== -1 && firstIndex !== lastIndex) {
+      const correctPart = cleanUrl.substring(lastIndex);
+      cleanUrl = 'https://res.' + correctPart;
+      console.log('[CompanyProfile] 🔧 URL corregida:', cleanUrl);
+    }
+    
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
+    }
+    return null;
+  };
+
   const fetchPerfil = useCallback(async () => {
     try {
       const response = await getPerfilEmpresa();
       if (response.success && response.data) {
+        // Limpiar la URL de la imagen si existe
+        if (response.data.profile_image) {
+          const cleanedUrl = cleanCloudinaryUrl(response.data.profile_image);
+          if (cleanedUrl) {
+            response.data.profile_image = cleanedUrl;
+            console.log('[CompanyProfile] ✅ Imagen de perfil:', cleanedUrl);
+          }
+        }
         setPerfil(response.data);
         setFormBasico({
           nombre_empresa: response.data.nombre_empresa,

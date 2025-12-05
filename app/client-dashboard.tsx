@@ -62,19 +62,38 @@ export default function ClientDashboard() {
         setUserInitial(initial);
         
         // Cargar foto de perfil - validar que sea una URL válida
-        if (user.profile_picture && typeof user.profile_picture === 'string' && user.profile_picture.trim() !== '') {
-          // Verificar que sea una URL válida (http/https o cloudinary)
-          const isValidUrl = user.profile_picture.startsWith('http://') || 
-                            user.profile_picture.startsWith('https://') ||
-                            user.profile_picture.includes('cloudinary');
+        const profilePic = user.profile_picture;
+        console.log('[Dashboard] profile_picture recibido:', profilePic);
+        
+        if (profilePic && typeof profilePic === 'string' && profilePic.trim() !== '') {
+          let cleanUrl = profilePic.trim();
+          
+          // Corregir URL duplicada de Cloudinary (bug del backend)
+          // Detecta: https://res.cloudinary.com/.../upload/https://res.cloudinary.com/.../upload/...
+          const cloudinaryUploadPattern = 'cloudinary.com/ducn8dj4o/image/upload/';
+          const firstIndex = cleanUrl.indexOf(cloudinaryUploadPattern);
+          const lastIndex = cleanUrl.lastIndexOf(cloudinaryUploadPattern);
+          
+          if (firstIndex !== -1 && lastIndex !== -1 && firstIndex !== lastIndex) {
+            // La URL está duplicada, tomar solo la segunda parte
+            const correctPart = cleanUrl.substring(lastIndex);
+            cleanUrl = 'https://res.' + correctPart;
+            console.log('[Dashboard] 🔧 URL corregida (estaba duplicada):', cleanUrl);
+          }
+          
+          // Verificar que sea una URL válida
+          const isValidUrl = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://');
+          
           if (isValidUrl) {
-            setProfilePicture(user.profile_picture);
+            console.log('[Dashboard] ✅ Estableciendo foto de perfil:', cleanUrl);
+            setProfilePicture(cleanUrl);
             setImageLoadError(false);
           } else {
-            console.log('[Dashboard] URL de imagen inválida:', user.profile_picture);
+            console.log('[Dashboard] ❌ URL de imagen inválida:', cleanUrl);
             setProfilePicture(null);
           }
         } else {
+          console.log('[Dashboard] ⚠️ No hay foto de perfil');
           setProfilePicture(null);
         }
         
@@ -102,12 +121,25 @@ export default function ClientDashboard() {
         setUserInitial(initial);
         
         // Validar URL de imagen del fallback local
-        if (user.profile_picture && typeof user.profile_picture === 'string' && user.profile_picture.trim() !== '') {
-          const isValidUrl = user.profile_picture.startsWith('http://') || 
-                            user.profile_picture.startsWith('https://') ||
-                            user.profile_picture.includes('cloudinary');
+        const localProfilePic = user.profile_picture;
+        if (localProfilePic && typeof localProfilePic === 'string' && localProfilePic.trim() !== '') {
+          let cleanUrl = localProfilePic.trim();
+          
+          // Corregir URL duplicada de Cloudinary
+          const cloudinaryUploadPattern = 'cloudinary.com/ducn8dj4o/image/upload/';
+          const firstIndex = cleanUrl.indexOf(cloudinaryUploadPattern);
+          const lastIndex = cleanUrl.lastIndexOf(cloudinaryUploadPattern);
+          
+          if (firstIndex !== -1 && lastIndex !== -1 && firstIndex !== lastIndex) {
+            const correctPart = cleanUrl.substring(lastIndex);
+            cleanUrl = 'https://res.' + correctPart;
+            console.log('[Dashboard] 🔧 Fallback URL corregida:', cleanUrl);
+          }
+          
+          const isValidUrl = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://');
           if (isValidUrl) {
-            setProfilePicture(user.profile_picture);
+            console.log('[Dashboard] ✅ Fallback URL válida:', cleanUrl);
+            setProfilePicture(cleanUrl);
             setImageLoadError(false);
           }
         }
@@ -147,14 +179,54 @@ export default function ClientDashboard() {
         // Encontrar la reserva más próxima
         // Priorizar reservas en estado pendiente/confirmada/en_proceso (pendientes)
         const now = Date.now();
+        console.log('[Dashboard] Hora actual (now):', new Date(now).toISOString());
+        
         const parseReservaDate = (r: any) => {
           try {
-            const fechaOnly = r.fecha?.toString().split('T')[0] || new Date(r.fecha).toISOString().split('T')[0];
-            const hora = (r.hora || '').toString().substring(0, 5) || '12:00';
-            const d = new Date(`${fechaOnly}T${hora}`);
+            console.log('[Dashboard] Parseando reserva:', { 
+              id: r.id_reserva, 
+              fecha: r.fecha, 
+              hora: r.hora, 
+              estado: r.estado 
+            });
+            
+            // Extraer solo la fecha (YYYY-MM-DD)
+            let fechaOnly: string;
+            if (typeof r.fecha === 'string') {
+              fechaOnly = r.fecha.split('T')[0];
+            } else {
+              fechaOnly = new Date(r.fecha).toISOString().split('T')[0];
+            }
+            
+            // Extraer la hora (HH:MM)
+            let horaStr = '12:00:00';
+            if (r.hora) {
+              horaStr = r.hora.toString();
+            }
+            
+            // Parsear componentes de fecha y hora
+            const [year, month, day] = fechaOnly.split('-').map(Number);
+            const timeParts = horaStr.split(':').map(Number);
+            const hours = timeParts[0] || 0;
+            const minutes = timeParts[1] || 0;
+            
+            // Crear fecha usando componentes LOCALES (no UTC)
+            // Esto asegura que 15:00 se interprete como 15:00 hora local
+            const d = new Date(year, month - 1, day, hours, minutes, 0);
+            
+            console.log('[Dashboard] Fecha parseada (LOCAL):', { 
+              fechaOnly,
+              horaStr,
+              parsedLocal: d.toString(),
+              parsedUTC: d.toISOString(),
+              timestamp: d.getTime(),
+              esValida: !isNaN(d.getTime())
+            });
+            
             if (isNaN(d.getTime())) return null;
             return d;
           } catch (e) {
+            console.error('[Dashboard] Error parseando fecha:', e);
             const d = new Date(r.fecha);
             return isNaN(d.getTime()) ? null : d;
           }
@@ -165,34 +237,75 @@ export default function ClientDashboard() {
           .filter(x => x.date !== null) as { reserva: Reserva; date: Date }[];
 
         const pendientesList = reservas.filter((r: any) => ['pendiente', 'confirmada', 'en_proceso'].includes(r.estado));
+        console.log('[Dashboard] Reservas pendientes encontradas:', pendientesList.length);
 
         // 1) Buscar próximas futuras dentro de pendientes
         let chosen: { reserva: Reserva; date: Date } | null = null;
         const pendientesWithDates = buildWithDates(pendientesList);
-        const futurasPendientes = pendientesWithDates.filter(x => x.date.getTime() >= now).sort((a, b) => a.date.getTime() - b.date.getTime());
+        console.log('[Dashboard] Pendientes con fechas válidas:', pendientesWithDates.length);
+        
+        // Log detallado de cada pendiente para debug
+        console.log('[Dashboard] ⏰ Hora actual (now):', new Date(now).toString(), 'timestamp:', now);
+        pendientesWithDates.forEach((x, i) => {
+          const esFutura = x.date.getTime() >= now;
+          const diff = x.date.getTime() - now;
+          console.log(`[Dashboard] Reserva ${i + 1}:`, {
+            id: x.reserva.id_reserva,
+            numero: (x.reserva as any).numero_reserva,
+            fechaLocal: x.date.toString(),
+            timestamp: x.date.getTime(),
+            esFutura,
+            diferenciaMins: Math.round(diff / 60000)
+          });
+        });
+        
+        const futurasPendientes = pendientesWithDates
+          .filter(x => x.date.getTime() >= now)
+          .sort((a, b) => a.date.getTime() - b.date.getTime());
+        console.log('[Dashboard] Pendientes futuras:', futurasPendientes.length);
+        
         if (futurasPendientes.length > 0) {
           chosen = futurasPendientes[0];
+          console.log('[Dashboard] Elegida (futura pendiente):', chosen.reserva.id_reserva);
         } else if (pendientesWithDates.length > 0) {
           // 2) Si no hay futuras pendientes, elegir la pendiente más cercana (pasada o futura)
           pendientesWithDates.sort((a, b) => Math.abs(a.date.getTime() - now) - Math.abs(b.date.getTime() - now));
           chosen = pendientesWithDates[0];
+          console.log('[Dashboard] Elegida (pendiente más cercana):', chosen.reserva.id_reserva);
         } else {
           // 3) Si no hay pendientes, buscar en todas las reservas: primero futuras, luego la más cercana
           const allWithDates = buildWithDates(reservas);
-          const futurasAll = allWithDates.filter(x => x.date.getTime() >= now).sort((a, b) => a.date.getTime() - b.date.getTime());
+          console.log('[Dashboard] Todas las reservas con fechas válidas:', allWithDates.length);
+          
+          const futurasAll = allWithDates
+            .filter(x => x.date.getTime() >= now)
+            .sort((a, b) => a.date.getTime() - b.date.getTime());
+          console.log('[Dashboard] Todas las futuras:', futurasAll.length);
+          
           if (futurasAll.length > 0) {
             chosen = futurasAll[0];
+            console.log('[Dashboard] Elegida (futura cualquiera):', chosen.reserva.id_reserva);
           } else if (allWithDates.length > 0) {
             allWithDates.sort((a, b) => Math.abs(a.date.getTime() - now) - Math.abs(b.date.getTime() - now));
             chosen = allWithDates[0];
+            console.log('[Dashboard] Elegida (más cercana cualquiera):', chosen.reserva.id_reserva);
           } else {
             chosen = null;
+            console.log('[Dashboard] No se encontró ninguna reserva válida');
           }
         }
 
         if (chosen) {
+          console.log('[Dashboard] ✅ Próxima cita seleccionada:', {
+            id: chosen.reserva.id_reserva,
+            fecha: chosen.reserva.fecha,
+            hora: chosen.reserva.hora,
+            estado: chosen.reserva.estado,
+            empresa: chosen.reserva.nombre_empresa
+          });
           setNextAppointment(chosen.reserva as Reserva);
         } else {
+          console.log('[Dashboard] ⚠️ No hay próxima cita');
           setNextAppointment(null);
         }
       }
@@ -252,10 +365,12 @@ export default function ClientDashboard() {
                   cachePolicy="memory-disk"
                   transition={200}
                   onError={(e) => {
-                    console.log('[Dashboard] Error cargando imagen:', e);
+                    console.log('[Dashboard] ❌ Error cargando imagen:', e);
+                    console.log('[Dashboard] URL que falló:', profilePicture);
                     setImageLoadError(true);
                   }}
                   onLoad={() => {
+                    console.log('[Dashboard] ✅ Imagen cargada correctamente');
                     setImageLoadError(false);
                   }}
                 />

@@ -716,12 +716,19 @@ export default function MyAppointments() {
       ? item.servicios[0].nombre_servicio 
       : 'Servicio de Lavado';
     
-    const fechaObj = new Date(item.fecha);
+    // Corregir parsing de fecha para evitar problemas de zona horaria
+    // Extraer la fecha directamente del string ISO sin conversión de zona horaria
+    const fechaStr = item.fecha.toString().split('T')[0]; // "2025-12-05"
+    const [year, month, day] = fechaStr.split('-').map(Number);
+    
+    // Crear fecha usando componentes locales (sin conversión UTC)
+    const fechaObj = new Date(year, month - 1, day);
+    
     const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const diaNum = fechaObj.getDate();
+    const diaNum = day; // Usar directamente el día parseado
     const diaNombre = diasSemana[fechaObj.getDay()];
-    const mes = meses[fechaObj.getMonth()];
+    const mes = meses[month - 1]; // Usar directamente el mes parseado (0-indexed)
     
     const isPending = item.estado === 'pendiente' || item.estado === 'confirmada' || item.estado === 'en_proceso';
     const isCompleted = item.estado === 'completada' || item.estado === 'completado';
@@ -2062,13 +2069,13 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1, padding: 16 },
   
-  // ===== ESTILOS TABS MEJORADAS =====
+  // ===== ESTILOS TABS MEJORADAS (compactos para móvil) =====
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 6,
-    marginBottom: 20,
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -2080,18 +2087,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    gap: 4,
   },
   tabActive: {
     backgroundColor: '#0C553C',
   },
   tabIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     backgroundColor: '#E8F5E9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2106,7 +2113,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E67E22',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#666',
   },
@@ -2115,17 +2122,17 @@ const styles = StyleSheet.create({
   },
   tabBadge: {
     backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 24,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
+    minWidth: 18,
     alignItems: 'center',
   },
   tabBadgeActive: {
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
   tabBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#0C553C',
   },
@@ -2239,67 +2246,68 @@ const styles = StyleSheet.create({
   },
   cardActionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    gap: 8,
+    gap: 6,
   },
   cardActionBtnNav: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#4CAF50',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 3,
   },
   cardActionBtnNavText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   cardActionBtnQR: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#2196F3',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 3,
   },
   cardActionBtnQRText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   cardActionBtnEdit: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E8F5E9',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 3,
   },
   cardActionBtnEditText: {
     color: '#0C553C',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   cardActionBtnCancel: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFEBEE',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 3,
   },
   cardActionBtnCancelText: {
     color: '#E53935',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   // Estilos para botón de recuperar reserva vencida

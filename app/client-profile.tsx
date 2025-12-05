@@ -75,6 +75,31 @@ export default function ClientProfile() {
       setLoading(true);
       setError('');
       
+      // Función para limpiar URL duplicada de Cloudinary
+      const cleanCloudinaryUrl = (url: string | null | undefined): string | null => {
+        if (!url || typeof url !== 'string') return null;
+        
+        let cleanUrl = url.trim();
+        if (!cleanUrl) return null;
+        
+        // Detectar y corregir URL duplicada de Cloudinary
+        const cloudinaryUploadPattern = 'cloudinary.com/ducn8dj4o/image/upload/';
+        const firstIndex = cleanUrl.indexOf(cloudinaryUploadPattern);
+        const lastIndex = cleanUrl.lastIndexOf(cloudinaryUploadPattern);
+        
+        if (firstIndex !== -1 && lastIndex !== -1 && firstIndex !== lastIndex) {
+          const correctPart = cleanUrl.substring(lastIndex);
+          cleanUrl = 'https://res.' + correctPart;
+          console.log('[Profile] 🔧 URL corregida:', cleanUrl);
+        }
+        
+        // Verificar que sea una URL válida
+        if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+          return cleanUrl;
+        }
+        return null;
+      };
+      
       // Primero intentar obtener del backend
       const profileResponse = await getProfile();
       
@@ -86,9 +111,11 @@ export default function ClientProfile() {
         setTelefono(userData.telefono || '');
         setDireccion(userData.direccion || '');
         setNombreUsuario(userData.nombre_usuario || '');
-        // Cargar foto de perfil
-        if (userData.profile_picture) {
-          setProfilePicture(userData.profile_picture);
+        // Cargar foto de perfil con limpieza de URL
+        const cleanedUrl = cleanCloudinaryUrl(userData.profile_picture);
+        if (cleanedUrl) {
+          console.log('[Profile] ✅ Foto de perfil:', cleanedUrl);
+          setProfilePicture(cleanedUrl);
         }
       } else {
         // Fallback a datos locales
@@ -100,9 +127,11 @@ export default function ClientProfile() {
           setTelefono(localUser.telefono || '');
           setDireccion(localUser.direccion || '');
           setNombreUsuario(localUser.nombre_usuario || '');
-          // Cargar foto de perfil
-          if (localUser.profile_picture) {
-            setProfilePicture(localUser.profile_picture);
+          // Cargar foto de perfil con limpieza de URL
+          const cleanedUrl = cleanCloudinaryUrl(localUser.profile_picture);
+          if (cleanedUrl) {
+            console.log('[Profile] ✅ Fallback foto de perfil:', cleanedUrl);
+            setProfilePicture(cleanedUrl);
           }
         } else {
           setError('No se pudo cargar la información del usuario');
