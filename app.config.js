@@ -27,7 +27,11 @@ module.exports = {
         "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      gradle: {
+        buildToolsVersion: "35.0.0",
+        kotlinVersion: "1.9.24"
+      }
     },
     web: {
       output: "static",

@@ -3,20 +3,32 @@
     "version": ">= 3.0.0"
   },
   "build": {
+    "base": {
+      "android": {
+        "image": "latest",
+        "env": {
+          "EXPO_USE_COMMUNITY_AUTOLINKING": "1"
+        }
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
       }
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "extends": "base",
       "android": {
         "buildType": "app-bundle"
       }
