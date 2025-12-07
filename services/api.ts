@@ -7,15 +7,15 @@ const PRODUCTION_API_URL = 'https://autonewapp-backend.onrender.com/api';
 
 // Obtener URL de forma segura - prioriza la config, pero usa producción como fallback
 const getApiUrl = (): string => {
-  try {
-    const configUrl = Constants.expoConfig?.extra?.apiUrl;
-    if (configUrl && typeof configUrl === 'string' && configUrl.startsWith('http')) {
-      return configUrl;
+    try {
+        const configUrl = Constants.expoConfig?.extra?.apiUrl;
+        if (configUrl && typeof configUrl === 'string' && configUrl.startsWith('http')) {
+            return configUrl;
+        }
+    } catch (e) {
+        console.log('Error obteniendo config, usando URL de producción');
     }
-  } catch (e) {
-    console.log('Error obteniendo config, usando URL de producción');
-  }
-  return PRODUCTION_API_URL;
+    return PRODUCTION_API_URL;
 };
 
 const API_URL = getApiUrl();
@@ -279,6 +279,8 @@ export interface Reserva {
     numero_reserva?: string;
     fue_recuperada?: boolean;
     recargo_recuperacion?: number;
+    puntuacion?: number;
+    comentario?: string;
 }
 
 export interface Servicio {
@@ -410,17 +412,17 @@ export const cancelarReserva = async (reservaId: number, usuarioId: number): Pro
  * Reagendar una reserva existente
  */
 export const reagendarReserva = async (
-    reservaId: number, 
-    nuevaFecha: string, 
-    nuevaHora: string, 
+    reservaId: number,
+    nuevaFecha: string,
+    nuevaHora: string,
     usuarioId: number
 ): Promise<ApiResponse<{ reserva: any }>> => {
     return fetchApi(`/reservas/reagendar/${reservaId}`, {
         method: 'PUT',
-        body: JSON.stringify({ 
-            nueva_fecha: nuevaFecha, 
+        body: JSON.stringify({
+            nueva_fecha: nuevaFecha,
             nueva_hora: nuevaHora,
-            usuario_id: usuarioId 
+            usuario_id: usuarioId
         }),
     });
 };
@@ -444,6 +446,8 @@ export const calcularRecargoRecuperacion = async (
     porcentaje_recargo: number;
     recargo: number;
     total_a_pagar: number;
+    recuperable?: boolean;
+    mensaje?: string;
 }>> => {
     return fetchApi(`/reservas/recargo-recuperacion/${reservaId}?usuario_id=${usuarioId}`, {
         method: 'GET',
@@ -588,6 +592,8 @@ export interface Empresa {
     latitud?: number;
     longitud?: number;
     profile_image?: string;
+    promedio_calificacion?: number;
+    total_calificaciones?: number;
 }
 
 export interface EmpresaLoginData {
@@ -599,6 +605,34 @@ export interface EmpresaLoginResponse {
     empresa: Empresa;
     token: string;
 }
+
+// ==================== CALIFICACIONES ====================
+
+export interface Calificacion {
+    id_calificacion?: number;
+    reserva_id: number;
+    empresa_id: number;
+    puntuacion: number;
+    comentario?: string;
+    fecha_creacion?: string;
+}
+
+/**
+ * Crear una nueva calificación
+ */
+export const crearCalificacion = async (data: Calificacion): Promise<ApiResponse<Calificacion>> => {
+    return fetchApi<Calificacion>('/calificaciones/crear', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+};
+
+/**
+ * Obtener calificación de una reserva
+ */
+export const getCalificacionPorReserva = async (reservaId: number): Promise<ApiResponse<Calificacion>> => {
+    return fetchApi<Calificacion>(`/calificaciones/reserva/${reservaId}`);
+};
 
 export interface DashboardStats {
     citasHoy: number;
@@ -627,6 +661,9 @@ export interface ReservaEmpresa {
     telefono_cliente: string;
     servicios: any[];
     total: number;
+    puntuacion?: number;
+    comentario?: string;
+    comentario_calificacion?: string;
 }
 
 export interface Analiticas {
@@ -718,7 +755,7 @@ export const getReservasEmpresa = async (params?: { estado?: string; fecha?: str
     if (params?.fecha) queryParams.append('fecha', params.fecha);
     if (params?.pagina) queryParams.append('pagina', params.pagina.toString());
     if (params?.limite) queryParams.append('limite', params.limite.toString());
-    
+
     const queryString = queryParams.toString();
     return fetchApi<{ reservas: ReservaEmpresa[]; paginacion: any }>(`/empresa/reservas${queryString ? `?${queryString}` : ''}`);
 };
@@ -995,18 +1032,18 @@ export const cambiarContrasenaEmpresa = async (data: CambiarContrasenaData): Pro
  */
 export const actualizarFotoPerfil = async (imageUri: string): Promise<ApiResponse<{ profile_image: string }>> => {
     const token = await AsyncStorage.getItem('token');
-    
+
     console.log('[FOTO EMPRESA] Actualizando foto de perfil...');
     console.log('[FOTO EMPRESA] URL API:', `${API_URL}/empresa/perfil/foto`);
     console.log('[FOTO EMPRESA] Token presente:', !!token);
-    
+
     const formData = new FormData();
-    
+
     // Obtener el nombre del archivo y el tipo
     const uriParts = imageUri.split('/');
     const fileName = uriParts[uriParts.length - 1];
     const fileType = fileName.split('.').pop()?.toLowerCase() || 'jpg';
-    
+
     formData.append('profile_image', {
         uri: imageUri,
         name: fileName,
@@ -1053,18 +1090,18 @@ export const eliminarFotoPerfil = async (): Promise<ApiResponse<any>> => {
  */
 export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<ApiResponse<{ profile_picture: string }>> => {
     const token = await AsyncStorage.getItem('token');
-    
+
     console.log('[FOTO] Actualizando foto de perfil...');
     console.log('[FOTO] URL API:', `${API_URL}/auth/profile/foto`);
     console.log('[FOTO] Token presente:', !!token);
-    
+
     const formData = new FormData();
-    
+
     // Obtener el nombre del archivo y el tipo
     const uriParts = imageUri.split('/');
     const fileName = uriParts[uriParts.length - 1];
     const fileType = fileName.split('.').pop()?.toLowerCase() || 'jpg';
-    
+
     formData.append('imagen', {
         uri: imageUri,
         name: fileName,
@@ -1098,11 +1135,11 @@ export const actualizarFotoPerfilUsuario = async (imageUri: string): Promise<Api
  */
 export const eliminarFotoPerfilUsuario = async (): Promise<ApiResponse<any>> => {
     const token = await AsyncStorage.getItem('token');
-    
+
     console.log('[FOTO] Eliminando foto de perfil...');
     console.log('[FOTO] URL API:', `${API_URL}/auth/profile/foto`);
     console.log('[FOTO] Token presente:', !!token);
-    
+
     try {
         const response = await fetch(`${API_URL}/auth/profile/foto`, {
             method: 'DELETE',

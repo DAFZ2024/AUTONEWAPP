@@ -16,6 +16,7 @@ export default function ClientDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [cancelledCount, setCancelledCount] = useState(0);
+  const [expiredCount, setExpiredCount] = useState(0);
   const [nextAppointment, setNextAppointment] = useState<Reserva | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
@@ -171,10 +172,12 @@ export default function ClientDashboard() {
         const pendientes = reservas.filter(r => r.estado === 'pendiente' || r.estado === 'confirmada' || r.estado === 'en_proceso');
         const completed = reservas.filter(r => r.estado === 'completado' || r.estado === 'completada').length;
         const cancelled = reservas.filter(r => (r as any).estado === 'cancelada' || (r as any).estado === 'cancelado').length;
+        const expired = reservas.filter(r => r.estado === 'vencida').length;
         
         setPendingCount(pendientes.length);
         setCompletedCount(completed);
         setCancelledCount(cancelled);
+        setExpiredCount(expired);
         
         // Encontrar la reserva más próxima
         // Priorizar reservas en estado pendiente/confirmada/en_proceso (pendientes)
@@ -430,6 +433,16 @@ export default function ClientDashboard() {
               <View style={styles.statCardContent}>
                 <Text style={styles.statCardNumber}>{cancelledCount}</Text>
                 <Text style={styles.statCardLabel}>Canceladas</Text>
+              </View>
+            </View>
+
+            <View style={[styles.statCard, styles.statCardExpired]}>
+              <View style={styles.statCardIcon}>
+                <Ionicons name="alert-circle" size={18} color="#6B7280" />
+              </View>
+              <View style={styles.statCardContent}>
+                <Text style={styles.statCardNumber}>{expiredCount}</Text>
+                <Text style={styles.statCardLabel}>Vencidas</Text>
               </View>
             </View>
           </View>
@@ -742,13 +755,15 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap', // Permitir wrap para multilínea
+    gap: 12, // Espacio entre cards
     marginBottom: 12,
   },
   statCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
-    width: '31%',
+    width: '48%', // Aumentar ancho para 2 columnas
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
@@ -756,6 +771,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
+    marginBottom: 0, // El gap maneja el espaciado vertical también (en navegadores modernos/RN reciente) o necesitamos marginBottom explícito si gap no funciona en versión vieja de RN.
   },
   statCardPending: {
     borderTopWidth: 3,
@@ -768,6 +784,10 @@ const styles = StyleSheet.create({
   statCardCancelled: {
     borderTopWidth: 3,
     borderTopColor: '#EF4444',
+  },
+  statCardExpired: {
+    borderTopWidth: 3,
+    borderTopColor: '#6B7280', // Gris para vencidas
   },
   statCardIcon: {
     width: 32,

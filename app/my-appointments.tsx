@@ -4,14 +4,14 @@ import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva, getHorariosDisponibles, reagendarReserva, calcularRecargoRecuperacion, recuperarReservaVencida } from '../services/api';
+import { getReservasUsuario, Reserva, getUser, verificarYCompletarReservaQR, cancelarReserva, getHorariosDisponibles, reagendarReserva, calcularRecargoRecuperacion, recuperarReservaVencida, crearCalificacion } from '../services/api';
 
 export default function MyAppointments() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'expired' | 'history'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'expired' | 'completed' | 'canceled'>('upcoming');
 
   const [selected, setSelected] = useState<Reserva | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -73,6 +73,13 @@ export default function MyAppointments() {
     servicios: string;
     total: number;
   } | null>(null);
+
+  // Estados para calificación
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingReserva, setRatingReserva] = useState<Reserva | null>(null);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingLoading, setRatingLoading] = useState(false);
 
   const fetchReservations = async () => {
     console.log('--- Iniciando fetchReservations ---');
@@ -143,27 +150,29 @@ export default function MyAppointments() {
       });
     };
 
-    // Incluir 'en_proceso' en próximas, vencidas en su propia tab, y ambas variantes de completado en historial
+    // Incluir 'en_proceso' en próximas
     const upcoming = appointments.filter(a => 
       a.estado === 'pendiente' || a.estado === 'confirmada' || a.estado === 'en_proceso'
     );
     const expired = appointments.filter(a => a.estado === 'vencida');
-    const past = appointments.filter(a => 
-      a.estado === 'completada' || a.estado === 'completado' || a.estado === 'cancelada'
+    const completed = appointments.filter(a => 
+      a.estado === 'completada' || a.estado === 'completado'
     );
+    const canceled = appointments.filter(a => a.estado === 'cancelada');
     
     if (activeTab === 'upcoming') {
-      // Próximas: ordenar de más antigua a más reciente (las que se cumplen pronto primero)
       const sortedUpcoming = sortByDateAsc(upcoming);
       return sortedUpcoming.length > 0 ? [{ title: 'Próximas', data: sortedUpcoming }] : [];
     } else if (activeTab === 'expired') {
-      // Vencidas: ordenar de más antigua a más reciente
       const sortedExpired = sortByDateAsc(expired);
       return sortedExpired.length > 0 ? [{ title: 'Vencidas', data: sortedExpired }] : [];
+    } else if (activeTab === 'completed') {
+      const sortedCompleted = sortByDateDesc(completed);
+      return sortedCompleted.length > 0 ? [{ title: 'Completadas', data: sortedCompleted }] : [];
     } else {
-      // Historial: ordenar de más reciente a más antigua
-      const sortedPast = sortByDateDesc(past);
-      return sortedPast.length > 0 ? [{ title: 'Historial', data: sortedPast }] : [];
+      // Canceladas
+      const sortedCanceled = sortByDateDesc(canceled);
+      return sortedCanceled.length > 0 ? [{ title: 'Canceladas', data: sortedCanceled }] : [];
     }
   }, [appointments, activeTab]);
 
@@ -485,6 +494,13 @@ export default function MyAppointments() {
           recargo: response.data.recargo,
           total_a_pagar: response.data.total_a_pagar
         });
+        
+        // Verificar si es recuperable según el backend
+        if (response.data.recuperable === false) {
+          Alert.alert('Plazo Vencido', response.data.mensaje || 'El periodo de recuperación de 48 horas ha expirado.');
+          return;
+        }
+
         setRecoverReserva(reserva);
         setShowRecoverModal(true);
       } else {
@@ -576,12 +592,68 @@ export default function MyAppointments() {
     setRecoverDate('');
     setRecoverTime('');
     setRecargoInfo(null);
+    setRecargoInfo(null);
   };
+
+  // ========== FUNCIONES PARA CALIFICACIÓN ==========
+
+  const handleRate = (reserva: Reserva) => {
+    setRatingReserva(reserva);
+    setRatingValue(5);
+    setRatingComment('');
+    setShowRatingModal(true);
+  };
+
+  const submitRating = async () => {
+    if (!ratingReserva) return;
+
+    try {
+      setRatingLoading(true);
+      const response = await crearCalificacion({
+        reserva_id: ratingReserva.id_reserva,
+        empresa_id: ratingReserva.empresa_id,
+        puntuacion: ratingValue,
+        comentario: ratingComment
+      });
+
+      if (response.success) {
+        setShowRatingModal(false);
+        setResultModalType('success');
+        setResultModalMessage('¡Gracias por tu calificación!');
+        setShowResultModal(true);
+        // Opcional: marcar localmente como calificada si quisieras evitar doble calificación inmediata
+      } else {
+        Alert.alert('Error', response.message || 'No se pudo enviar la calificación');
+      }
+    } catch (error) {
+      console.error('Error enviando calificación:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar la calificación');
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
 
   const getServiceIcon = (nombreServicio: string): keyof typeof Ionicons.glyphMap => {
     if (nombreServicio.toLowerCase().includes('lavado')) return 'car-outline';
     if (nombreServicio.toLowerCase().includes('desinfección')) return 'sparkles-outline';
     return 'construct-outline';
+  };
+
+  // Verificar si está dentro del periodo de recuperación (48 horas después de la cita)
+  const isWithinRecoveryPeriod = (reserva: Reserva) => {
+    try {
+      const fechaStr = reserva.fecha.toString().split('T')[0];
+      const horaStr = reserva.hora.toString().substring(0, 5);
+      const fechaReserva = new Date(`${fechaStr}T${horaStr}:00`);
+      const ahora = new Date();
+      // Diferencia en horas: (Ahora - FechaCita) / ms_por_hora
+      const diferenciaMs = ahora.getTime() - fechaReserva.getTime();
+      const horasPasadas = diferenciaMs / (1000 * 60 * 60);
+      return horasPasadas <= 48;
+    } catch (e) {
+      return false;
+    }
   };
 
   // Función para abrir el escáner QR
@@ -741,8 +813,9 @@ export default function MyAppointments() {
       if (isExpired) return { bg: '#FFF3E0', color: '#E67E22', icon: 'alert-circle' as const, text: 'Vencida' };
       return { bg: '#FFEBEE', color: '#E53935', icon: 'close-circle' as const, text: 'Cancelada' };
     };
-    
+
     const statusConfig = getStatusConfig();
+
     
     return (
       <TouchableOpacity style={styles.appointmentCard} onPress={() => openDetails(item)} activeOpacity={0.7}>
@@ -825,23 +898,62 @@ export default function MyAppointments() {
           )}
 
           {/* Acciones para citas vencidas - Botón de recuperar */}
+          {/* Acciones para citas vencidas - Botón de recuperar */}
           {isExpired && (
             <View style={styles.cardActionsRow}>
-              <TouchableOpacity 
-                style={styles.cardActionBtnRecover} 
-                onPress={() => handleRecoverExpired(item)} 
-                activeOpacity={0.7}
-                disabled={recoverLoading}
-              >
-                {recoverLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="refresh-circle-outline" size={16} color="#fff" />
-                    <Text style={styles.cardActionBtnRecoverText}>Recuperar Cita (+25%)</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {isWithinRecoveryPeriod(item) ? (
+                <TouchableOpacity 
+                  style={styles.cardActionBtnRecover} 
+                  onPress={() => handleRecoverExpired(item)} 
+                  activeOpacity={0.7}
+                  disabled={recoverLoading}
+                >
+                  {recoverLoading && recoverReserva?.id_reserva === item.id_reserva ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="refresh-circle-outline" size={16} color="#fff" />
+                      <Text style={styles.cardActionBtnRecoverText}>Recuperar Cita (+25%)</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.cardActionBtnRecover, { backgroundColor: '#9E9E9E', opacity: 0.8 }]}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#fff" />
+                  <Text style={styles.cardActionBtnRecoverText}>Recuperación Expirada</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Acciones para citas completadas - Botón de calificar */}
+          {/* Acciones para citas completadas - Botón de calificar o Estrellas si ya calificó */}
+          {isCompleted && (
+            <View style={styles.cardActionsRow}>
+              {item.puntuacion ? (
+                <View style={styles.ratedContainer}>
+                  <Text style={styles.ratedLabel}>Tu calificación:</Text>
+                  <View style={styles.starsRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons 
+                        key={star} 
+                        name="star" 
+                        size={16} 
+                        color={star <= (item.puntuacion || 0) ? "#FFB300" : "#E0E0E0"} 
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.cardActionBtnRate, { backgroundColor: '#FFB300' }]} 
+                  onPress={() => handleRate(item)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="star" size={16} color="#fff" />
+                  <Text style={styles.cardActionBtnRateText}> Calificar Servicio</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -937,18 +1049,33 @@ export default function MyAppointments() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'history' && styles.tabActive]}
-            onPress={() => setActiveTab('history')}
+            style={[styles.tabBtn, activeTab === 'completed' && styles.tabActive]}
+            onPress={() => setActiveTab('completed')}
             activeOpacity={0.7}
           >
-            <View style={[styles.tabIconContainer, activeTab === 'history' && styles.tabIconContainerActive]}>
+            <View style={[styles.tabIconContainer, activeTab === 'completed' && styles.tabIconContainerActive]}>
               <Ionicons 
                 name="checkmark-done-outline" 
                 size={18} 
-                color={activeTab === 'history' ? '#fff' : '#0C553C'} 
+                color={activeTab === 'completed' ? '#fff' : '#0C553C'} 
               />
             </View>
-            <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>Historial</Text>
+            <Text style={[styles.tabText, activeTab === 'completed' && styles.tabTextActive]}>Completadas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'canceled' && styles.tabActive]}
+            onPress={() => setActiveTab('canceled')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.tabIconContainer, activeTab === 'canceled' && styles.tabIconContainerActive]}>
+              <Ionicons 
+                name="close-circle-outline" 
+                size={18} 
+                color={activeTab === 'canceled' ? '#fff' : '#E53935'} 
+              />
+            </View>
+            <Text style={[styles.tabText, activeTab === 'canceled' && styles.tabTextActive]}>Canceladas</Text>
           </TouchableOpacity>
         </View>
         
@@ -959,7 +1086,9 @@ export default function MyAppointments() {
                 ? 'No tienes citas próximas' 
                 : activeTab === 'expired'
                 ? 'No tienes citas vencidas'
-                : 'No tienes historial de citas'}
+                : activeTab === 'completed'
+                ? 'No tienes citas completadas'
+                : 'No tienes citas canceladas'}
             </Text>
             {activeTab === 'upcoming' && (
               <TouchableOpacity 
@@ -1804,6 +1933,79 @@ export default function MyAppointments() {
                 <Text style={styles.qrSuccessButtonText}>Continuar</Text>
               </TouchableOpacity>
             </LinearGradient>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Calificación */}
+      <Modal visible={showRatingModal} animationType="slide" transparent>
+        <View style={styles.detailModalOverlay}>
+          <View style={[styles.detailModalCard, { maxHeight: '80%' }]}>
+            <View style={styles.detailModalHeader}>
+              <Text style={styles.detailModalTitle}>Calificar Servicio</Text>
+              <TouchableOpacity onPress={() => setShowRatingModal(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={{ padding: 20 }}>
+              <Text style={{ textAlign: 'center', marginBottom: 20, fontSize: 16, color: '#666' }}>
+                ¿Cómo fue tu experiencia con {ratingReserva?.nombre_empresa}?
+              </Text>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 30 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity 
+                    key={star} 
+                    onPress={() => setRatingValue(star)}
+                    style={{ marginHorizontal: 5 }}
+                  >
+                    <Ionicons 
+                      name={star <= ratingValue ? "star" : "star-outline"} 
+                      size={40} 
+                      color="#FFB300" 
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={{ marginBottom: 10, fontWeight: '600', color: '#333' }}>Comentario (Opcional)</Text>
+              <TextInput
+                style={{ 
+                  borderWidth: 1, 
+                  borderColor: '#ddd', 
+                  borderRadius: 12, 
+                  padding: 15, 
+                  height: 100, 
+                  textAlignVertical: 'top',
+                  marginBottom: 20,
+                  backgroundColor: '#f9f9f9'
+                }}
+                placeholder="Escribe tu opinión aquí..."
+                multiline
+                numberOfLines={4}
+                value={ratingComment}
+                onChangeText={setRatingComment}
+              />
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#FFB300',
+                  paddingVertical: 15,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  marginBottom: 10
+                }}
+                onPress={submitRating}
+                disabled={ratingLoading}
+              >
+                {ratingLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Enviar Calificación</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -3795,5 +3997,41 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  cardActionBtnRate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  cardActionBtnRateText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  detailModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  ratedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  ratedLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F57F17',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
   },
 });

@@ -17,18 +17,20 @@ type Reservation = {
   client: string;
   date: string;
   time: string;
-  status: 'pendiente' | 'completado' | 'cancelada' | 'vencida';
+  status: 'pendiente' | 'completado' | 'completada' | 'cancelada' | 'vencida';
   price: number;
   vehicle: string;
   telefono?: string;
   email?: string;
   servicios?: any[];
   numero_reserva?: string;
+  puntuacion?: number;
+  comentario?: string;
 };
 
 export default function CompanyReservations() {
   const router = useRouter();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'expired' | 'today' | 'week'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'expired' | 'today' | 'week'>('all');
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -163,6 +165,11 @@ export default function CompanyReservations() {
             }
           }
           
+          // Log para depurar qué está llegando
+          if (r.puntuacion) {
+            console.log(`[Reserva ${r.id_reserva}] Rating:`, r.puntuacion, 'Comentario:', r.comentario_calificacion, 'Status:', r.estado);
+          }
+
           return {
             id: r.id_reserva.toString(),
             numero_reserva: r.numero_reserva,
@@ -170,12 +177,14 @@ export default function CompanyReservations() {
             client: r.nombre_cliente || 'Cliente',
             date: fechaNormalizada,
             time: r.hora?.substring(0, 5) || '00:00',
-            status: r.estado as 'pendiente' | 'completado' | 'cancelada' | 'vencida',
+            status: r.estado.toLowerCase() as 'pendiente' | 'completado' | 'completada' | 'cancelada' | 'vencida',
             price: parseFloat(r.total?.toString() || '0'),
             vehicle: r.placa_vehiculo || r.tipo_vehiculo || 'No especificado',
             telefono: r.telefono_cliente,
             email: r.email_cliente,
             servicios: r.servicios,
+            puntuacion: r.puntuacion ? Number(r.puntuacion) : undefined,
+            comentario: r.comentario_calificacion, // Usar el alias correcto del backend
           };
         });
         setReservations(transformedReservations);
@@ -333,10 +342,11 @@ export default function CompanyReservations() {
     return {
       total: reservations.length,
       pending: reservations.filter((r: Reservation) => r.status === 'pendiente').length,
+      completed: reservations.filter((r: Reservation) => r.status === 'completado' || r.status === 'completada').length,
       expired: reservations.filter((r: Reservation) => r.status === 'vencida').length,
       today: reservations.filter((r: Reservation) => r.date === today).length,
       thisWeek: reservations.filter((r: Reservation) => r.date >= today && r.date <= weekFromNow).length,
-      totalRevenue: reservations.filter((r: Reservation) => r.status === 'completado').reduce((sum: number, r: Reservation) => sum + r.price, 0),
+      totalRevenue: reservations.filter((r: Reservation) => r.status === 'completado' || r.status === 'completada').reduce((sum: number, r: Reservation) => sum + r.price, 0),
     };
   }, [reservations]);
 
@@ -349,6 +359,9 @@ export default function CompanyReservations() {
     switch (filter) {
       case 'pending':
         filtered = reservations.filter((r: Reservation) => r.status === 'pendiente');
+        break;
+      case 'completed':
+        filtered = reservations.filter((r: Reservation) => r.status === 'completado' || r.status === 'completada');
         break;
       case 'expired':
         filtered = reservations.filter((r: Reservation) => r.status === 'vencida');
@@ -494,6 +507,28 @@ export default function CompanyReservations() {
             </View>
           </View>
 
+          {/* Calificación del Usuario - Solo si está completada y tiene calificación */}
+          {(item.status === 'completado' || item.status === 'completada') && (item.puntuacion || 0) > 0 && (
+            <View style={styles.ratingContainer}>
+              <View style={styles.ratingHeader}>
+                <Text style={styles.ratingLabel}>Calificación del usuario:</Text>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name={star <= (item.puntuacion || 0) ? "star" : "star-outline"}
+                      size={16}
+                      color="#FFB300"
+                    />
+                  ))}
+                </View>
+              </View>
+              {item.comentario && (
+                <Text style={styles.ratingComment}>"{item.comentario}"</Text>
+              )}
+            </View>
+          )}
+
           {/* Botón QR para pendientes */}
           {item.status === 'pendiente' && (
             <TouchableOpacity 
@@ -629,6 +664,7 @@ export default function CompanyReservations() {
             {[
               { key: 'all', label: 'Todas', count: stats.total, icon: 'list-outline', isExpired: false },
               { key: 'pending', label: 'Pendientes', count: stats.pending, icon: 'time-outline', isExpired: false },
+              { key: 'completed', label: 'Completadas', count: stats.completed, icon: 'checkmark-circle-outline', isExpired: false },
               { key: 'expired', label: 'Vencidas', count: stats.expired, icon: 'alert-circle-outline', isExpired: true },
               { key: 'today', label: 'Hoy', count: stats.today, icon: 'today-outline', isExpired: false },
               { key: 'week', label: 'Esta Semana', count: stats.thisWeek, icon: 'calendar-outline', isExpired: false },
@@ -959,4 +995,30 @@ const styles = StyleSheet.create({
   successPriceContainer: { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12, padding: 16, alignItems: 'center', width: '100%' },
   successPriceLabel: { color: 'rgba(255, 255, 255, 0.85)', fontSize: 13, marginBottom: 4 },
   successPriceValue: { color: '#fff', fontSize: 28, fontWeight: 'bold' },
+  ratingContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  ratingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  ratingLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  starsRow: {
+    flexDirection: 'row',
+  },
+  ratingComment: {
+    fontSize: 13,
+    color: '#334155',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
 });

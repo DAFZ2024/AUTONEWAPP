@@ -1018,6 +1018,27 @@ export default function BookAppointment() {
                       {empresa.nombre_empresa}
                     </Text>
 
+                    {/* Calificación */}
+                    {empresa.promedio_calificacion > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <Ionicons name="star" size={14} color="#FFD700" style={{ marginRight: 4 }} />
+                        <Text style={{ 
+                          fontSize: 14, 
+                          fontWeight: 'bold', 
+                          color: selectedEmpresa === empresa.id_empresa ? '#fff' : '#333' 
+                        }}>
+                          {empresa.promedio_calificacion}
+                        </Text>
+                        <Text style={{ 
+                          fontSize: 12, 
+                          color: selectedEmpresa === empresa.id_empresa ? 'rgba(255,255,255,0.7)' : '#666',
+                          marginLeft: 4 
+                        }}>
+                          ({empresa.total_calificaciones || 0})
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Dirección */}
                     <View style={styles.empresaInfoRow}>
                       <Ionicons name="location-outline" size={16} color="#666" style={styles.empresaInfoIcon} />
